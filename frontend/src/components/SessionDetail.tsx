@@ -1,6 +1,8 @@
 import { memo, useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
+import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
+import "highlight.js/styles/github.css";
 import { DeleteConfirmDialog } from "./DeleteConfirmDialog";
 import { CopyPathButton } from "./CopyPathButton";
 import { RefreshButton } from "./RefreshButton";
@@ -32,6 +34,7 @@ interface Props {
 }
 
 const REMARK_PLUGINS = [remarkGfm];
+const REHYPE_PLUGINS = [rehypeHighlight];
 
 function CollapsiblePart({ part, isMdRendered }: { part: MessagePart; isMdRendered: boolean }) {
   const [expanded, setExpanded] = useState(false);
@@ -47,7 +50,7 @@ function CollapsiblePart({ part, isMdRendered }: { part: MessagePart; isMdRender
       {expanded && part.detail && (
         isMdRendered ? (
           <div className="markdown-body collapsible-detail-md">
-            <ReactMarkdown remarkPlugins={REMARK_PLUGINS}>
+            <ReactMarkdown remarkPlugins={REMARK_PLUGINS} rehypePlugins={REHYPE_PLUGINS}>
               {part.detail}
             </ReactMarkdown>
           </div>
@@ -63,7 +66,7 @@ const MessagePartView = memo(function MessagePartView({ part, isMdRendered }: { 
   if (part.type === "text" && isMdRendered) {
     return (
       <div className="markdown-body">
-        <ReactMarkdown remarkPlugins={REMARK_PLUGINS}>
+        <ReactMarkdown remarkPlugins={REMARK_PLUGINS} rehypePlugins={REHYPE_PLUGINS}>
           {part.text ?? ""}
         </ReactMarkdown>
       </div>
