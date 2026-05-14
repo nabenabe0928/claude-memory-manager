@@ -174,6 +174,127 @@ describe("SessionDetail", () => {
     });
   });
 
+  describe("markdown toggle", () => {
+    const markdownMessages = [
+      {
+        role: "assistant",
+        lineIndex: 0,
+        parts: [{ type: "text" as const, text: "# Heading\n\nSome **bold** text" }],
+      },
+    ];
+
+    it("shows MD button on messages with text parts", async () => {
+      mockFetchWith(defaultMessages);
+      renderDetail();
+
+      await waitFor(() => {
+        expect(screen.getByText("Hello there")).toBeInTheDocument();
+      });
+
+      const mdButtons = screen.getAllByRole("button", { name: "MD" });
+      expect(mdButtons).toHaveLength(2);
+    });
+
+    it("hides MD button on messages without text parts", async () => {
+      const toolOnlyMessages = [
+        {
+          role: "assistant",
+          lineIndex: 0,
+          parts: [{ type: "tool_use" as const, label: "Read file", detail: "contents" }],
+        },
+      ];
+      mockFetchWith(toolOnlyMessages);
+      renderDetail();
+
+      await waitFor(() => {
+        expect(screen.getByText("Read file")).toBeInTheDocument();
+      });
+
+      expect(screen.queryByRole("button", { name: "MD" })).not.toBeInTheDocument();
+    });
+
+    it("renders text in pre tag by default", async () => {
+      mockFetchWith(markdownMessages);
+      renderDetail();
+
+      await waitFor(() => {
+        expect(screen.getByText(/Some \*\*bold\*\* text/)).toBeInTheDocument();
+      });
+
+      const pre = document.querySelector(".message-text");
+      expect(pre).toBeInTheDocument();
+      expect(pre?.tagName).toBe("PRE");
+      expect(document.querySelector(".markdown-body")).not.toBeInTheDocument();
+    });
+
+    it("renders markdown when MD button is clicked", async () => {
+      mockFetchWith(markdownMessages);
+      const user = userEvent.setup();
+      renderDetail();
+
+      await waitFor(() => {
+        expect(screen.getByText(/Some \*\*bold\*\* text/)).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole("button", { name: "MD" }));
+
+      expect(document.querySelector(".markdown-body")).toBeInTheDocument();
+      expect(document.querySelector(".message-text")).not.toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "Heading" })).toBeInTheDocument();
+    });
+
+    it("toggles back to raw text on second click", async () => {
+      mockFetchWith(markdownMessages);
+      const user = userEvent.setup();
+      renderDetail();
+
+      await waitFor(() => {
+        expect(screen.getByText(/Some \*\*bold\*\* text/)).toBeInTheDocument();
+      });
+
+      const mdButton = screen.getByRole("button", { name: "MD" });
+      await user.click(mdButton);
+      expect(document.querySelector(".markdown-body")).toBeInTheDocument();
+
+      await user.click(mdButton);
+      expect(document.querySelector(".markdown-body")).not.toBeInTheDocument();
+      expect(document.querySelector(".message-text")).toBeInTheDocument();
+    });
+
+    it("toggles messages independently", async () => {
+      mockFetchWith(defaultMessages);
+      const user = userEvent.setup();
+      renderDetail();
+
+      await waitFor(() => {
+        expect(screen.getByText("Hello there")).toBeInTheDocument();
+      });
+
+      const mdButtons = screen.getAllByRole("button", { name: "MD" });
+      await user.click(mdButtons[0]);
+
+      const messages = document.querySelectorAll(".message");
+      expect(messages[0].querySelector(".markdown-body")).toBeInTheDocument();
+      expect(messages[1].querySelector(".markdown-body")).not.toBeInTheDocument();
+    });
+
+    it("applies active class to MD button when enabled", async () => {
+      mockFetchWith(defaultMessages);
+      const user = userEvent.setup();
+      renderDetail();
+
+      await waitFor(() => {
+        expect(screen.getByText("Hello there")).toBeInTheDocument();
+      });
+
+      const mdButton = screen.getAllByRole("button", { name: "MD" })[0];
+      expect(mdButton.className).not.toContain("md-btn-active");
+
+      await user.click(mdButton);
+      expect(mdButton.className).toContain("md-btn-active");
+    });
+  });
+
   describe("message delete flow", () => {
     it("shows delete button on each message", async () => {
       mockFetchWith(defaultMessages);

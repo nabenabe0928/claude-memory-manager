@@ -28,6 +28,8 @@ interface Props {
   onDuplicate: (sessionId: string) => void;
 }
 
+const REMARK_PLUGINS = [remarkGfm];
+
 function CollapsiblePart({ part }: { part: MessagePart }) {
   const [expanded, setExpanded] = useState(false);
   return (
@@ -44,6 +46,39 @@ function CollapsiblePart({ part }: { part: MessagePart }) {
       )}
     </div>
   );
+}
+
+function MessagePartView({ part, isMdRendered }: { part: MessagePart; isMdRendered: boolean }) {
+  if (part.type === "text") {
+    if (isMdRendered) {
+      return (
+        <div className="markdown-body">
+          <ReactMarkdown remarkPlugins={REMARK_PLUGINS}>
+            {part.text ?? ""}
+          </ReactMarkdown>
+        </div>
+      );
+    }
+    return (
+      <pre className="message-text">
+        {part.text ?? ""}
+      </pre>
+    );
+  }
+  if (part.type === "image") {
+    return <span className="message-label">{part.label}</span>;
+  }
+  return <CollapsiblePart part={part} />;
+}
+
+function getTextForCopy(m: Message) {
+  return m.parts
+    .map((p) => {
+      if (p.type === "text") return p.text ?? "";
+      const label = p.label ?? "";
+      return p.detail ? `${label}\n${p.detail}` : label;
+    })
+    .join("\n");
 }
 
 export function SessionDetail({ session, projectId, onBack, onDelete, onDuplicate }: Props) {
@@ -87,6 +122,7 @@ export function SessionDetail({ session, projectId, onBack, onDelete, onDuplicat
       .then((r) => {
         if (!r.ok) return;
         setConfirmDeleteLine(null);
+        setMdRendered(new Set());
         return fetch(`/api/projects/${projectId}/sessions/${session.id}`);
       })
       .then((r) => r?.json())
@@ -99,9 +135,11 @@ export function SessionDetail({ session, projectId, onBack, onDelete, onDuplicat
     const r = await fetch(`/api/projects/${projectId}/sessions/${session.id}`);
     const data = await r.json();
     setMessages(data);
+    setMdRendered(new Set());
   };
 
   useEffect(() => {
+    setMdRendered(new Set());
     fetch(`/api/projects/${projectId}/sessions/${session.id}`)
       .then((r) => r.json())
       .then((data) => {
@@ -150,65 +188,40 @@ export function SessionDetail({ session, projectId, onBack, onDelete, onDuplicat
         <p className="empty">No messages found in this session.</p>
       ) : (
         <div className="messages">
-          {messages.map((m, i) => {
-            const textForCopy = m.parts
-              .map((p) => {
-                if (p.type === "text") return p.text ?? "";
-                const label = p.label ?? "";
-                return p.detail ? `${label}\n${p.detail}` : label;
-              })
-              .join("\n");
-            return (
-              <div key={i} className={`message message-${m.role}`}>
-                <div className="message-top">
-                  <span className="message-role">{m.role}</span>
-                  <div className="message-actions">
+          {messages.map((m, i) => (
+            <div key={i} className={`message message-${m.role}`}>
+              <div className="message-top">
+                <span className="message-role">{m.role}</span>
+                <div className="message-actions">
+                  {m.parts.some((p) => p.type === "text") && (
                     <button
                       className={`msg-action-btn md-btn${mdRendered.has(i) ? " md-btn-active" : ""}`}
                       onClick={() => toggleMarkdown(i)}
                     >
                       MD
                     </button>
-                    <button
-                      className="msg-action-btn copy-btn"
-                      onClick={() => handleCopy(textForCopy, i)}
-                    >
-                      {copiedIndex === i ? "Copied!" : "Copy"}
-                    </button>
-                    <button
-                      className="msg-action-btn msg-delete-btn"
-                      onClick={() => setConfirmDeleteLine(m.lineIndex)}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-                <div className="message-body">
-                  {m.parts.map((p, j) =>
-                    p.type === "text" ? (
-                      mdRendered.has(i) ? (
-                        <div key={j} className="markdown-body">
-                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                            {p.text ?? ""}
-                          </ReactMarkdown>
-                        </div>
-                      ) : (
-                        <pre key={j} className="message-text">
-                          {p.text}
-                        </pre>
-                      )
-                    ) : p.type === "image" ? (
-                      <span key={j} className="message-label">
-                        {p.label}
-                      </span>
-                    ) : (
-                      <CollapsiblePart key={j} part={p} />
-                    )
                   )}
+                  <button
+                    className="msg-action-btn copy-btn"
+                    onClick={() => handleCopy(getTextForCopy(m), i)}
+                  >
+                    {copiedIndex === i ? "Copied!" : "Copy"}
+                  </button>
+                  <button
+                    className="msg-action-btn msg-delete-btn"
+                    onClick={() => setConfirmDeleteLine(m.lineIndex)}
+                  >
+                    Delete
+                  </button>
                 </div>
               </div>
-            );
-          })}
+              <div className="message-body">
+                {m.parts.map((p, j) => (
+                  <MessagePartView key={j} part={p} isMdRendered={mdRendered.has(i)} />
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       )}
       {confirmDeleteLine !== null && (
