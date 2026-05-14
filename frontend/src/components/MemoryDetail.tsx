@@ -1,0 +1,46 @@
+import { useState } from "react";
+import type { Memory } from "../types";
+import { DeleteConfirmDialog } from "./DeleteConfirmDialog";
+import "./MemoryDetail.css";
+
+interface Props {
+  memory: Memory;
+  onDelete: (filename: string) => void;
+  onBack: () => void;
+}
+
+export function MemoryDetail({ memory, onDelete, onBack }: Props) {
+  const [showConfirm, setShowConfirm] = useState(false);
+
+  return (
+    <div className="memory-detail">
+      <button className="back-btn" onClick={onBack}>
+        &larr; Back to Memories
+      </button>
+      <div className="detail-header">
+        <div>
+          <h2>{memory.name}</h2>
+          <p className="detail-desc">{memory.description}</p>
+        </div>
+        <button className="delete-btn" onClick={() => setShowConfirm(true)}>
+          Delete
+        </button>
+      </div>
+      <div className="detail-meta">
+        <span className="detail-type">Type: {memory.type}</span>
+        <span className="detail-file">File: {memory.filename}</span>
+      </div>
+      <pre className="detail-content">{memory.content}</pre>
+      {showConfirm && (
+        <DeleteConfirmDialog
+          memoryName={memory.name}
+          onConfirm={() => {
+            onDelete(memory.filename);
+            setShowConfirm(false);
+          }}
+          onCancel={() => setShowConfirm(false)}
+        />
+      )}
+    </div>
+  );
+}
