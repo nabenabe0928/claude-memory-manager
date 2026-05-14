@@ -10,10 +10,34 @@
   flex-shrink: 0;
 }
 
+.app-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
 .app-header h1 {
   margin: 0;
   font-size: 20px;
   font-weight: 700;
+}
+
+.home-btn {
+  background: none;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 6px;
+  color: #555;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.home-btn:hover {
+  background: #e0e0e0;
+  color: #333;
 }
 
 .app-note {
