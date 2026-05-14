@@ -19,6 +19,14 @@ export function SessionDetail({ session, projectId, onBack, onDelete }: Props) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+
+  const handleCopy = (text: string, index: number) => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedIndex(index);
+      setTimeout(() => setCopiedIndex(null), 1500);
+    });
+  };
 
   useEffect(() => {
     fetch(`/api/projects/${projectId}/sessions/${session.id}`)
@@ -54,7 +62,15 @@ export function SessionDetail({ session, projectId, onBack, onDelete }: Props) {
         <div className="messages">
           {messages.map((m, i) => (
             <div key={i} className={`message message-${m.role}`}>
-              <span className="message-role">{m.role}</span>
+              <div className="message-top">
+                <span className="message-role">{m.role}</span>
+                <button
+                  className="copy-btn"
+                  onClick={() => handleCopy(m.text, i)}
+                >
+                  {copiedIndex === i ? "Copied!" : "Copy"}
+                </button>
+              </div>
               <pre className="message-text">{m.text}</pre>
             </div>
           ))}

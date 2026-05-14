@@ -189,6 +189,8 @@ def get_session(project_id: str, session_id: str):
                 for part in content:
                     if isinstance(part, dict) and part.get("type") == "text":
                         parts.append(part["text"])
+                    elif isinstance(part, dict) and part.get("type") == "image":
+                        parts.append("[Image]")
                     elif isinstance(part, dict) and part.get("type") == "tool_use":
                         parts.append(f"[Tool: {part.get('name', '?')}]")
                     elif isinstance(part, dict) and part.get("type") == "tool_result":
