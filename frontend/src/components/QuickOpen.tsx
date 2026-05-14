@@ -170,6 +170,17 @@ export function QuickOpen({
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
 
+  const updateQuery = (newQuery: string) => {
+    setQuery(newQuery);
+    setSelectedIndex(0);
+    if (!newQuery.includes("/")) {
+      setDrillProjectChild(null);
+      setDrillProjectDisplayPath("");
+      setDrillItems([]);
+      setDrillLoading(false);
+    }
+  };
+
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
@@ -210,10 +221,6 @@ export function QuickOpen({
 
     if (!resolvedPath) {
       fetchTree();
-      setDrillProjectChild(null);
-      setDrillProjectDisplayPath("");
-      setDrillItems([]);
-      setDrillLoading(false);
       return () => { active = false; };
     }
 
@@ -464,10 +471,6 @@ export function QuickOpen({
   }, [currentTree, drillProjectChild, drillProjectDisplayPath, drillItems, filterText]);
 
   useEffect(() => {
-    setSelectedIndex(0);
-  }, [query]);
-
-  useEffect(() => {
     const list = listRef.current;
     if (!list) return;
     const item = list.children[selectedIndex] as HTMLElement | undefined;
@@ -477,7 +480,7 @@ export function QuickOpen({
   const handleSelect = (result: QuickOpenResult) => {
     switch (result.kind) {
       case "dir":
-        setQuery((resolvedPath ? resolvedPath + "/" : "") + result.child.name + "/");
+        updateQuery((resolvedPath ? resolvedPath + "/" : "") + result.child.name + "/");
         break;
       case "project": {
         const hasMem = result.child.memoryCount > 0;
@@ -487,7 +490,7 @@ export function QuickOpen({
         } else if (hasSess && !hasMem) {
           onNavigateToSessions(childToProject(result.child, result.displayPath));
         } else {
-          setQuery((resolvedPath ? resolvedPath + "/" : "") + result.child.name + "/");
+          updateQuery((resolvedPath ? resolvedPath + "/" : "") + result.child.name + "/");
         }
         break;
       }
@@ -505,7 +508,7 @@ export function QuickOpen({
         } else if (sp.sessionCount > 0 && sp.memoryCount === 0) {
           onNavigateToSessions(p);
         } else {
-          setQuery((resolvedPath ? resolvedPath + "/" : "") + "./");
+          updateQuery((resolvedPath ? resolvedPath + "/" : "") + "./");
         }
         break;
       }
@@ -549,9 +552,9 @@ export function QuickOpen({
         if (results.length === 0 || selectedIndex >= results.length) break;
         const sel = results[selectedIndex];
         if (sel.kind === "dir" || sel.kind === "project") {
-          setQuery((resolvedPath ? resolvedPath + "/" : "") + sel.child.name + "/");
+          updateQuery((resolvedPath ? resolvedPath + "/" : "") + sel.child.name + "/");
         } else if (sel.kind === "selfProject") {
-          setQuery((resolvedPath ? resolvedPath + "/" : "") + "./");
+          updateQuery((resolvedPath ? resolvedPath + "/" : "") + "./");
         }
         break;
       }
@@ -574,7 +577,7 @@ export function QuickOpen({
           className="quickopen-input"
           type="text"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => updateQuery(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
         />

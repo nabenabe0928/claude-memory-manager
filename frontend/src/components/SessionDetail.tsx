@@ -155,10 +155,10 @@ export function SessionDetail({ session, projectId, projectDisplayName, onBack, 
   };
 
   useEffect(() => {
-    setMdRendered(new Set());
     fetch(`/api/projects/${projectId}/sessions/${session.id}`)
       .then((r) => r.json())
       .then((data) => {
+        setMdRendered(new Set());
         setMessages(data);
         setLoading(false);
       });
