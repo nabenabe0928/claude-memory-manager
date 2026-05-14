@@ -67,13 +67,17 @@ function childToProject(child: TreeChild, displayPath: string): Project {
   };
 }
 
-function selfToProject(tree: TreeResponse): Project {
+function selfToTreeChild(tree: TreeResponse): TreeChild {
+  const sp = tree.selfProject!;
   return {
-    id: tree.selfProject!.id,
-    displayName: tree.displayPath,
-    path: tree.selfProject!.projectPath,
-    memoryCount: tree.selfProject!.memoryCount,
-    sessionCount: tree.selfProject!.sessionCount,
+    name: tree.path.split("/").pop() ?? "",
+    path: tree.path,
+    isProject: true,
+    projectId: sp.id,
+    projectPath: sp.projectPath,
+    memoryCount: sp.memoryCount,
+    sessionCount: sp.sessionCount,
+    hasChildren: false,
   };
 }
 
@@ -84,7 +88,7 @@ function getResultLabel(item: QuickOpenResult): string {
     case "project":
       return item.child.name;
     case "selfProject":
-      return item.tree.displayPath + " (this directory)";
+      return item.tree.displayPath + " (this directory; type . to select this)";
     case "memory":
       return item.memory.name || item.memory.filename;
     case "session":
@@ -217,6 +221,39 @@ export function QuickOpen({
       for (let i = 0; i < pathSegments.length; i++) {
         const seg = pathSegments[i];
 
+        if (seg === "." && i === pathSegments.length - 1 && tree.selfProject) {
+          if (!active) return;
+          const syntheticChild = selfToTreeChild(tree);
+          setCurrentTree(tree);
+          setTreeLoading(false);
+          setDrillProjectChild(syntheticChild);
+          setDrillProjectDisplayPath(tree.displayPath);
+
+          const cachedDrill = drillCacheRef.current.get(tree.selfProject.id);
+          if (cachedDrill) {
+            setDrillItems(cachedDrill);
+            setDrillLoading(false);
+          } else {
+            setDrillLoading(true);
+            {
+              const pid = tree.selfProject.id;
+              const [memories, sessions] = await Promise.all([
+                fetch(`/api/projects/${pid}/memories`).then((r) => r.ok ? r.json() : []).catch(() => []),
+                fetch(`/api/projects/${pid}/sessions`).then((r) => r.ok ? r.json() : []).catch(() => []),
+              ]) as [Memory[], Session[]];
+              if (!active) return;
+              const items: DrillItem[] = [
+                ...memories.map((m) => ({ kind: "memory" as const, memory: m })),
+                ...sessions.map((s) => ({ kind: "session" as const, session: s })),
+              ];
+              drillCacheRef.current.set(pid, items);
+              setDrillItems(items);
+            }
+            if (active) setDrillLoading(false);
+          }
+          return;
+        }
+
         let bestChild: TreeChild | null = null;
         let bestScore = Infinity;
         for (const child of tree.children) {
@@ -347,10 +384,16 @@ export function QuickOpen({
       if (filterText === "") {
         items.push({ kind: "selfProject", tree: currentTree, score: -1, indices: [] });
       } else {
-        const searchLabel = currentTree.displayPath === "~" ? "home" : currentTree.displayPath;
-        const m = fuzzyMatch(filterText, searchLabel);
-        if (m) {
-          items.push({ kind: "selfProject", tree: currentTree, score: m.score, indices: [] });
+        const candidates = [". this directory", currentTree.displayPath === "~" ? "home" : currentTree.displayPath];
+        let bestMatch: { score: number } | null = null;
+        for (const c of candidates) {
+          const m = fuzzyMatch(filterText, c);
+          if (m && (!bestMatch || m.score < bestMatch.score)) {
+            bestMatch = m;
+          }
+        }
+        if (bestMatch) {
+          items.push({ kind: "selfProject", tree: currentTree, score: bestMatch.score, indices: [] });
         }
       }
     }
@@ -402,7 +445,7 @@ export function QuickOpen({
         onNavigateToProject(childToProject(result.child, result.displayPath));
         break;
       case "selfProject":
-        onNavigateToProject(selfToProject(result.tree));
+        setQuery((resolvedPath ? resolvedPath + "/" : "") + "./");
         break;
       case "memory":
         onNavigateToMemory(childToProject(result.projectChild, result.projectDisplayPath), result.memory);
@@ -439,6 +482,8 @@ export function QuickOpen({
         const sel = results[selectedIndex];
         if (sel.kind === "dir" || sel.kind === "project") {
           setQuery((resolvedPath ? resolvedPath + "/" : "") + sel.child.name + "/");
+        } else if (sel.kind === "selfProject") {
+          setQuery((resolvedPath ? resolvedPath + "/" : "") + "./");
         }
         break;
       }
@@ -451,6 +496,7 @@ export function QuickOpen({
     : `Search in ${displayPath}/...`;
 
   const loading = treeLoading || drillLoading;
+  const hasSelfProject = !drillProjectChild && currentTree?.selfProject != null;
 
   return (
     <div className="quickopen-overlay" onClick={onClose}>
@@ -497,6 +543,7 @@ export function QuickOpen({
         )}
         <div className="quickopen-hint">
           ↑↓ navigate &middot; Enter select &middot; Tab drill in &middot; Esc close
+          {hasSelfProject && <> &middot; ./ browse this directory's memories</>}
         </div>
       </div>
     </div>
