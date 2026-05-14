@@ -6,6 +6,7 @@ import { CopyPathButton } from "./CopyPathButton";
 import { RefreshButton } from "./RefreshButton";
 import type { Session } from "../types";
 import { modKey, altKey } from "../utils";
+import "./markdown.css";
 import "./SessionDetail.css";
 
 interface MessagePart {

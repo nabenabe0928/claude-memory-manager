@@ -1,9 +1,14 @@
 import { useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import type { Memory } from "../types";
+
+const REMARK_PLUGINS = [remarkGfm];
 import { modKey } from "../utils";
 import { DeleteConfirmDialog } from "./DeleteConfirmDialog";
 import { CopyPathButton } from "./CopyPathButton";
 import { RefreshButton } from "./RefreshButton";
+import "./markdown.css";
 import "./MemoryDetail.css";
 
 interface Props {
@@ -38,7 +43,11 @@ export function MemoryDetail({ memory, onDelete, onBack, onRefresh }: Props) {
         <span className="detail-type">Type: {memory.type}</span>
         <span className="detail-file">File: {memory.filename}</span>
       </div>
-      <pre className="detail-content">{memory.content}</pre>
+      <div className="detail-content markdown-body">
+        <ReactMarkdown remarkPlugins={REMARK_PLUGINS}>
+          {memory.content}
+        </ReactMarkdown>
+      </div>
       {showConfirm && (
         <DeleteConfirmDialog
           itemName={memory.name}
