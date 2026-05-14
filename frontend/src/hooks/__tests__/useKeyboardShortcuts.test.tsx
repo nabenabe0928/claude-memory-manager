@@ -184,6 +184,26 @@ describe("useKeyboardShortcuts", () => {
     });
   });
 
+  describe("Alt shortcuts work with special key chars (Mac)", () => {
+    it("Alt+P copies path even when e.key is π", () => {
+      const project = makeProject({ path: "/projects/my-proj" });
+      const config = makeConfig({ view: "category", selectedProject: project });
+      renderHook(() => useKeyboardShortcuts(config));
+
+      fireKey("π", { altKey: true, code: "KeyP" });
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith("/projects/my-proj");
+    });
+
+    it("Alt+R copies resume cmd even when e.key is ®", () => {
+      const session = makeSession({ id: "abc-123" });
+      const config = makeConfig({ view: "sessionDetail", selectedSession: session, projectDisplayName: "~/my-project" });
+      renderHook(() => useKeyboardShortcuts(config));
+
+      fireKey("®", { altKey: true, code: "KeyR" });
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith("cd ~/my-project && claude --resume abc-123");
+    });
+  });
+
   describe("input guard", () => {
     it("does not fire shortcuts when target is an input", () => {
       const back = vi.fn();
