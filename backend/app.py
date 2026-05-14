@@ -35,6 +35,8 @@ def _get_projects() -> list[dict]:
         if memory_dir.is_dir():
             memory_count = len([f for f in memory_dir.iterdir() if f.suffix == ".md" and f.name != "MEMORY.md"])
         session_count = len([f for f in entry.iterdir() if f.suffix == ".jsonl"])
+        if memory_count == 0 and session_count == 0:
+            continue
         projects.append({
             "id": entry.name,
             "displayName": _get_project_display_name(entry.name),
