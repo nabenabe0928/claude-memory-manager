@@ -321,3 +321,174 @@ class TestResolveProjectMemoryDir:
         with app_module.app.test_request_context():
             with pytest.raises(NotFound):
                 _resolve_project_memory_dir("proj")
+
+
+class TestDisplayPath:
+    def test_home_directory_returns_tilde(self):
+        from app import _display_path
+
+        home = Path.home().resolve()
+        assert _display_path(home) == "~"
+
+    def test_path_under_home_returns_tilde_prefix(self):
+        from app import _display_path
+
+        home = Path.home().resolve()
+        assert _display_path(home / "subdir") == "~/subdir"
+
+    def test_nested_path_under_home(self):
+        from app import _display_path
+
+        home = Path.home().resolve()
+        assert _display_path(home / "a" / "b" / "c") == "~/a/b/c"
+
+    def test_path_outside_home_returns_unchanged(self):
+        from app import _display_path
+
+        assert _display_path(Path("/tmp/something")) == "/tmp/something"
+
+    def test_path_with_home_prefix_but_different_dir(self):
+        from app import _display_path
+
+        home = Path.home().resolve()
+        # e.g. /home/user vs /home/userextra — must NOT match
+        fake_path = Path(str(home) + "extra/foo")
+        result = _display_path(fake_path)
+        assert result == str(fake_path)
+        assert not result.startswith("~")
+
+
+class TestBuildSessionDict:
+    def test_returns_correct_id_filename_path(self, tmp_path):
+        from app import _build_session_dict
+
+        project_dir = tmp_path / "proj"
+        project_dir.mkdir()
+        jsonl_file = project_dir / "abc123.jsonl"
+        jsonl_file.write_text('{"type":"user","message":{"content":"hi"}}\n')
+
+        result = _build_session_dict(jsonl_file, project_dir, summary="test")
+        assert result["id"] == "abc123"
+        assert result["filename"] == "abc123.jsonl"
+        assert result["path"] == str(jsonl_file)
+
+    def test_uses_provided_summary(self, tmp_path):
+        from app import _build_session_dict
+
+        project_dir = tmp_path / "proj"
+        project_dir.mkdir()
+        jsonl_file = project_dir / "sess.jsonl"
+        jsonl_file.write_text('{"type":"user","message":{"content":"hello"}}\n')
+
+        result = _build_session_dict(jsonl_file, project_dir, summary="custom summary")
+        assert result["summary"] == "custom summary"
+
+    def test_extracts_summary_when_none(self, tmp_path):
+        from app import _build_session_dict
+
+        project_dir = tmp_path / "proj"
+        project_dir.mkdir()
+        jsonl_file = project_dir / "sess.jsonl"
+        jsonl_file.write_text('{"type":"user","message":{"content":"auto extracted"}}\n')
+
+        result = _build_session_dict(jsonl_file, project_dir)
+        assert result["summary"] == "auto extracted"
+
+    def test_has_companion_dir_true_when_dir_exists(self, tmp_path):
+        from app import _build_session_dict
+
+        project_dir = tmp_path / "proj"
+        project_dir.mkdir()
+        jsonl_file = project_dir / "sess.jsonl"
+        jsonl_file.write_text('{"type":"user","message":{"content":"hi"}}\n')
+        companion = project_dir / "sess"
+        companion.mkdir()
+
+        result = _build_session_dict(jsonl_file, project_dir, summary="x")
+        assert result["hasCompanionDir"] is True
+
+    def test_has_companion_dir_false_when_no_dir(self, tmp_path):
+        from app import _build_session_dict
+
+        project_dir = tmp_path / "proj"
+        project_dir.mkdir()
+        jsonl_file = project_dir / "sess.jsonl"
+        jsonl_file.write_text('{"type":"user","message":{"content":"hi"}}\n')
+
+        result = _build_session_dict(jsonl_file, project_dir, summary="x")
+        assert result["hasCompanionDir"] is False
+
+    def test_size_bytes_matches_file_size(self, tmp_path):
+        from app import _build_session_dict
+
+        project_dir = tmp_path / "proj"
+        project_dir.mkdir()
+        content = '{"type":"user","message":{"content":"hello world"}}\n'
+        jsonl_file = project_dir / "sess.jsonl"
+        jsonl_file.write_text(content)
+
+        result = _build_session_dict(jsonl_file, project_dir, summary="x")
+        assert result["sizeBytes"] == jsonl_file.stat().st_size
+
+    def test_modified_at_is_iso_format(self, tmp_path):
+        from app import _build_session_dict
+
+        project_dir = tmp_path / "proj"
+        project_dir.mkdir()
+        jsonl_file = project_dir / "sess.jsonl"
+        jsonl_file.write_text('{"type":"user","message":{"content":"hi"}}\n')
+
+        result = _build_session_dict(jsonl_file, project_dir, summary="x")
+        # ISO format contains 'T' separator between date and time
+        assert "T" in result["modifiedAt"]
+
+
+class TestResolveSessionFile:
+    def test_returns_path_for_valid_session(self, projects_dir):
+        from app import _resolve_session_file
+
+        create_project(
+            projects_dir,
+            "proj",
+            sessions={"mysession": [{"type": "user", "message": {"content": "hi"}}]},
+        )
+        with app_module.app.test_request_context():
+            result = _resolve_session_file("proj", "mysession")
+        assert result == projects_dir / "proj" / "mysession.jsonl"
+        assert result.is_file()
+
+    def test_aborts_400_for_slash_in_session_id(self, projects_dir):
+        from app import _resolve_session_file
+
+        create_project(
+            projects_dir,
+            "proj",
+            sessions={"s": [{"type": "user", "message": {"content": "hi"}}]},
+        )
+        with app_module.app.test_request_context():
+            with pytest.raises(BadRequest):
+                _resolve_session_file("proj", "a/b")
+
+    def test_aborts_400_for_dotdot_in_session_id(self, projects_dir):
+        from app import _resolve_session_file
+
+        create_project(
+            projects_dir,
+            "proj",
+            sessions={"s": [{"type": "user", "message": {"content": "hi"}}]},
+        )
+        with app_module.app.test_request_context():
+            with pytest.raises(BadRequest):
+                _resolve_session_file("proj", "a..b")
+
+    def test_aborts_404_for_nonexistent_session(self, projects_dir):
+        from app import _resolve_session_file
+
+        create_project(
+            projects_dir,
+            "proj",
+            sessions={"s": [{"type": "user", "message": {"content": "hi"}}]},
+        )
+        with app_module.app.test_request_context():
+            with pytest.raises(NotFound):
+                _resolve_session_file("proj", "nonexistent")
