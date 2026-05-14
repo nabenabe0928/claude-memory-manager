@@ -4,7 +4,6 @@ import { fuzzyMatch } from "../fuzzyMatch";
 import "./QuickOpen.css";
 
 interface QuickOpenProps {
-  onNavigateToProject: (project: Project) => void;
   onNavigateToMemories: (project: Project) => void;
   onNavigateToSessions: (project: Project) => void;
   onNavigateToMemory: (project: Project, memory: Memory) => void;
@@ -20,6 +19,8 @@ type QuickOpenResult =
   | { kind: "dir"; child: TreeChild; score: number; indices: number[] }
   | { kind: "project"; child: TreeChild; displayPath: string; score: number; indices: number[] }
   | { kind: "selfProject"; tree: TreeResponse; score: number; indices: number[] }
+  | { kind: "memoryCategory"; project: Project; count: number; score: number; indices: number[] }
+  | { kind: "sessionCategory"; project: Project; count: number; score: number; indices: number[] }
   | { kind: "memory"; projectChild: TreeChild; projectDisplayPath: string; memory: Memory; score: number; indices: number[] }
   | { kind: "session"; projectChild: TreeChild; projectDisplayPath: string; session: Session; score: number; indices: number[] };
 
@@ -91,6 +92,10 @@ function getResultLabel(item: QuickOpenResult): string {
       return item.child.name;
     case "selfProject":
       return item.tree.displayPath + " (this directory; type . to select this)";
+    case "memoryCategory":
+      return `Memories (${item.count})`;
+    case "sessionCategory":
+      return `Sessions (${item.count})`;
     case "memory":
       return item.memory.name || item.memory.filename;
     case "session":
@@ -111,6 +116,9 @@ function getResultMeta(item: QuickOpenResult): string {
       if (sc > 0) parts.push(`${sc} sess`);
       return parts.join(", ");
     }
+    case "memoryCategory":
+    case "sessionCategory":
+      return "go to list";
     case "memory":
       return item.memory.type;
     case "session":
@@ -128,6 +136,10 @@ function getResultKey(item: QuickOpenResult): string {
       return "proj:" + item.child.projectId;
     case "selfProject":
       return "self:" + item.tree.path;
+    case "memoryCategory":
+      return "cat:memories:" + item.project.id;
+    case "sessionCategory":
+      return "cat:sessions:" + item.project.id;
     case "memory":
       return "mem:" + item.memory.filename;
     case "session":
@@ -136,7 +148,6 @@ function getResultKey(item: QuickOpenResult): string {
 }
 
 export function QuickOpen({
-  onNavigateToProject,
   onNavigateToMemories,
   onNavigateToSessions,
   onNavigateToMemory,
@@ -354,15 +365,38 @@ export function QuickOpen({
 
   const results: QuickOpenResult[] = useMemo(() => {
     if (drillProjectChild) {
+      const project = childToProject(drillProjectChild, drillProjectDisplayPath);
+      const memCount = drillItems.filter((d) => d.kind === "memory").length;
+      const sessCount = drillItems.filter((d) => d.kind === "session").length;
+
+      const categories: QuickOpenResult[] = [];
+      const addCategories = (memMatch: { score: number; indices: number[] } | null, sessMatch: { score: number; indices: number[] } | null) => {
+        if (memCount > 0 && memMatch) {
+          categories.push({ kind: "memoryCategory", project, count: memCount, score: memMatch.score, indices: memMatch.indices });
+        }
+        if (sessCount > 0 && sessMatch) {
+          categories.push({ kind: "sessionCategory", project, count: sessCount, score: sessMatch.score, indices: sessMatch.indices });
+        }
+      };
+
       if (filterText === "") {
-        return drillItems.map((item) => {
+        addCategories({ score: -1, indices: [] }, { score: -1, indices: [] });
+        const items: QuickOpenResult[] = [...categories];
+        for (const item of drillItems) {
           if (item.kind === "memory") {
-            return { kind: "memory" as const, projectChild: drillProjectChild, projectDisplayPath: drillProjectDisplayPath, memory: item.memory, score: 0, indices: [] };
+            items.push({ kind: "memory" as const, projectChild: drillProjectChild, projectDisplayPath: drillProjectDisplayPath, memory: item.memory, score: 0, indices: [] });
+          } else {
+            items.push({ kind: "session" as const, projectChild: drillProjectChild, projectDisplayPath: drillProjectDisplayPath, session: item.session, score: 0, indices: [] });
           }
-          return { kind: "session" as const, projectChild: drillProjectChild, projectDisplayPath: drillProjectDisplayPath, session: item.session, score: 0, indices: [] };
-        });
+        }
+        return items;
       }
-      const matched: QuickOpenResult[] = [];
+
+      const memCatMatch = fuzzyMatch(filterText, "memories");
+      const sessCatMatch = fuzzyMatch(filterText, "sessions");
+      addCategories(memCatMatch, sessCatMatch);
+
+      const matched: QuickOpenResult[] = [...categories];
       for (const item of drillItems) {
         const label = item.kind === "memory"
           ? (item.memory.name || item.memory.filename)
@@ -446,15 +480,14 @@ export function QuickOpen({
         setQuery((resolvedPath ? resolvedPath + "/" : "") + result.child.name + "/");
         break;
       case "project": {
-        const p = childToProject(result.child, result.displayPath);
         const hasMem = result.child.memoryCount > 0;
         const hasSess = result.child.sessionCount > 0;
         if (hasMem && !hasSess) {
-          onNavigateToMemories(p);
+          onNavigateToMemories(childToProject(result.child, result.displayPath));
         } else if (hasSess && !hasMem) {
-          onNavigateToSessions(p);
+          onNavigateToSessions(childToProject(result.child, result.displayPath));
         } else {
-          onNavigateToProject(p);
+          setQuery((resolvedPath ? resolvedPath + "/" : "") + result.child.name + "/");
         }
         break;
       }
@@ -472,10 +505,16 @@ export function QuickOpen({
         } else if (sp.sessionCount > 0 && sp.memoryCount === 0) {
           onNavigateToSessions(p);
         } else {
-          onNavigateToProject(p);
+          setQuery((resolvedPath ? resolvedPath + "/" : "") + "./");
         }
         break;
       }
+      case "memoryCategory":
+        onNavigateToMemories(result.project);
+        break;
+      case "sessionCategory":
+        onNavigateToSessions(result.project);
+        break;
       case "memory":
         onNavigateToMemory(childToProject(result.projectChild, result.projectDisplayPath), result.memory);
         break;
@@ -552,12 +591,11 @@ export function QuickOpen({
                 onClick={() => handleSelect(item)}
                 onMouseEnter={() => setSelectedIndex(i)}
               >
-                {(item.kind === "memory" || item.kind === "session") && (
-                  <span
-                    className={`quickopen-kind-badge ${item.kind === "memory" ? "quickopen-kind-memory" : "quickopen-kind-session"}`}
-                  >
-                    {item.kind}
-                  </span>
+                {(item.kind === "memory" || item.kind === "memoryCategory") && (
+                  <span className="quickopen-kind-badge quickopen-kind-memory">memory</span>
+                )}
+                {(item.kind === "session" || item.kind === "sessionCategory") && (
+                  <span className="quickopen-kind-badge quickopen-kind-session">session</span>
                 )}
                 {item.kind === "dir" && (
                   <span className="quickopen-kind-badge quickopen-kind-dir">dir</span>

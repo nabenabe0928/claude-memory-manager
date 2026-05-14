@@ -117,11 +117,6 @@ function App() {
     setPaletteOpen((prev) => !prev);
   };
 
-  const handlePaletteNavigateProject = (project: Project) => {
-    setPaletteOpen(false);
-    handleSelectProject(project);
-  };
-
   const handlePaletteNavigateMemory = (project: Project, memory: Memory) => {
     setPaletteOpen(false);
     setSelectedProject(project);
@@ -411,7 +406,6 @@ function App() {
       {toast && <div className="toast">{toast}</div>}
       {paletteOpen && (
         <QuickOpen
-          onNavigateToProject={handlePaletteNavigateProject}
           onNavigateToMemories={handlePaletteNavigateMemories}
           onNavigateToSessions={handlePaletteNavigateSessions}
           onNavigateToMemory={handlePaletteNavigateMemory}
