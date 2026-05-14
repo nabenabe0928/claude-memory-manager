@@ -2,6 +2,7 @@ from datetime import datetime
 import json
 from pathlib import Path
 import shutil
+import uuid
 
 from flask import abort
 from flask import Flask
@@ -288,6 +289,39 @@ def delete_session(project_id: str, session_id: str):
         shutil.rmtree(companion_dir)
 
     return jsonify({"deleted": session_id})
+
+
+@app.route(
+    "/api/projects/<project_id>/sessions/<session_id>/duplicate",
+    methods=["POST"],
+)
+def duplicate_session(project_id: str, session_id: str):
+    jsonl_file = _resolve_session_file(project_id, session_id)
+    project_dir = jsonl_file.parent
+
+    new_id = str(uuid.uuid4())
+    new_jsonl = project_dir / f"{new_id}.jsonl"
+    shutil.copy2(jsonl_file, new_jsonl)
+
+    companion_dir = project_dir / session_id
+    if companion_dir.is_dir():
+        shutil.copytree(companion_dir, project_dir / new_id)
+
+    stat = new_jsonl.stat()
+    return (
+        jsonify(
+            {
+                "id": new_id,
+                "filename": new_jsonl.name,
+                "path": str(new_jsonl),
+                "summary": _extract_session_summary(new_jsonl),
+                "modifiedAt": datetime.fromtimestamp(stat.st_mtime).isoformat(),
+                "sizeBytes": stat.st_size,
+                "hasCompanionDir": (project_dir / new_id).is_dir(),
+            }
+        ),
+        201,
+    )
 
 
 if __name__ == "__main__":

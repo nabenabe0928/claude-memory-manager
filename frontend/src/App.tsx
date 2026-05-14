@@ -136,6 +136,30 @@ function App() {
       });
   };
 
+  const handleDuplicateSession = (sessionId: string) => {
+    if (!selectedProjectId) return;
+    fetch(
+      `/api/projects/${selectedProjectId}/sessions/${sessionId}/duplicate`,
+      { method: "POST" }
+    )
+      .then((r) => {
+        if (!r.ok) throw new Error("Duplicate failed");
+        return r.json();
+      })
+      .then((newSession: Session) => {
+        setSessions((prev) => [newSession, ...prev]);
+        setProjects((prev) =>
+          prev.map((p) =>
+            p.id === selectedProjectId
+              ? { ...p, sessionCount: p.sessionCount + 1 }
+              : p
+          )
+        );
+        setSelectedSession(null);
+        setView("sessions");
+      });
+  };
+
   if (loading) {
     return <div className="app-loading">Loading...</div>;
   }
@@ -197,6 +221,7 @@ function App() {
               handleDeleteSession(id);
               handleBackToSessions();
             }}
+            onDuplicate={handleDuplicateSession}
           />
         )}
       </div>

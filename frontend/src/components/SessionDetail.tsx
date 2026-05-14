@@ -22,6 +22,7 @@ interface Props {
   projectId: string;
   onBack: () => void;
   onDelete: (sessionId: string) => void;
+  onDuplicate: (sessionId: string) => void;
 }
 
 function CollapsiblePart({ part }: { part: MessagePart }) {
@@ -42,12 +43,13 @@ function CollapsiblePart({ part }: { part: MessagePart }) {
   );
 }
 
-export function SessionDetail({ session, projectId, onBack, onDelete }: Props) {
+export function SessionDetail({ session, projectId, onBack, onDelete, onDuplicate }: Props) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [showConfirm, setShowConfirm] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [copiedResume, setCopiedResume] = useState(false);
+  const [duplicating, setDuplicating] = useState(false);
   const [confirmDeleteLine, setConfirmDeleteLine] = useState<number | null>(null);
 
   const resumeCommand = `claude --resume ${session.id}`;
@@ -105,6 +107,16 @@ export function SessionDetail({ session, projectId, onBack, onDelete }: Props) {
             {copiedResume ? "Copied!" : "Copy resume cmd"}
           </button>
           <CopyPathButton path={session.path} />
+          <button
+            className="copy-path-btn"
+            onClick={() => {
+              setDuplicating(true);
+              onDuplicate(session.id);
+            }}
+            disabled={duplicating}
+          >
+            {duplicating ? "Duplicating..." : "Duplicate"}
+          </button>
           <button
             className="delete-btn"
             onClick={() => setShowConfirm(true)}

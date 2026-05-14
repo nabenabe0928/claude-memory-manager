@@ -576,6 +576,89 @@ class TestGetSessionEndpoint:
         assert data[0]["parts"][0]["label"] == "[Tool: ?]"
 
 
+class TestDuplicateSessionEndpoint:
+    def test_duplicates_session_file(self, client, projects_dir):
+        create_project(
+            projects_dir,
+            "proj",
+            sessions={
+                "sess1": [{"type": "user", "message": {"content": "hi"}}],
+            },
+        )
+        resp = client.post("/api/projects/proj/sessions/sess1/duplicate")
+        assert resp.status_code == 201
+        data = resp.get_json()
+        assert data["id"] != "sess1"
+        new_jsonl = projects_dir / "proj" / data["filename"]
+        assert new_jsonl.exists()
+        assert new_jsonl.read_text() == (projects_dir / "proj" / "sess1.jsonl").read_text()
+
+    def test_duplicates_companion_directory(self, client, projects_dir):
+        proj = create_project(
+            projects_dir,
+            "proj",
+            sessions={
+                "sess1": [{"type": "user", "message": {"content": "hi"}}],
+            },
+        )
+        companion = proj / "sess1"
+        companion.mkdir()
+        (companion / "artifact.txt").write_text("data")
+        resp = client.post("/api/projects/proj/sessions/sess1/duplicate")
+        assert resp.status_code == 201
+        data = resp.get_json()
+        assert data["hasCompanionDir"] is True
+        new_companion = proj / data["id"]
+        assert new_companion.is_dir()
+        assert (new_companion / "artifact.txt").read_text() == "data"
+
+    def test_succeeds_without_companion_directory(self, client, projects_dir):
+        create_project(
+            projects_dir,
+            "proj",
+            sessions={
+                "sess1": [{"type": "user", "message": {"content": "hi"}}],
+            },
+        )
+        resp = client.post("/api/projects/proj/sessions/sess1/duplicate")
+        assert resp.status_code == 201
+        data = resp.get_json()
+        assert data["hasCompanionDir"] is False
+
+    def test_returns_valid_session_object(self, client, projects_dir):
+        create_project(
+            projects_dir,
+            "proj",
+            sessions={
+                "sess1": [{"type": "user", "message": {"content": "hello"}}],
+            },
+        )
+        resp = client.post("/api/projects/proj/sessions/sess1/duplicate")
+        data = resp.get_json()
+        assert "id" in data
+        assert "filename" in data
+        assert "path" in data
+        assert "summary" in data
+        assert "modifiedAt" in data
+        assert "sizeBytes" in data
+        assert "hasCompanionDir" in data
+        assert data["summary"] == "hello"
+
+    def test_returns_404_for_nonexistent_session(self, client, projects_dir):
+        (projects_dir / "proj").mkdir()
+        resp = client.post("/api/projects/proj/sessions/missing/duplicate")
+        assert resp.status_code == 404
+
+    def test_returns_404_for_nonexistent_project(self, client, projects_dir):
+        resp = client.post("/api/projects/ghost/sessions/s1/duplicate")
+        assert resp.status_code == 404
+
+    def test_path_traversal_does_not_leak(self, client, projects_dir):
+        (projects_dir / "proj").mkdir()
+        resp = client.post("/api/projects/proj/sessions/..%2F..%2Fetc/duplicate")
+        assert resp.status_code in (400, 404)
+
+
 class TestDeleteSessionEndpoint:
     def test_deletes_session_file(self, client, projects_dir):
         create_project(
