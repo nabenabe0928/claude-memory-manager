@@ -2,26 +2,25 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+SESSION="claude-memory-manager"
 
-echo "Installing Python dependencies..."
-uv pip install -r "$SCRIPT_DIR/backend/requirements.txt"
+if tmux has-session -t "$SESSION" 2>/dev/null; then
+  echo "Session '$SESSION' already running. Attaching..."
+  tmux attach -t "$SESSION"
+  exit 0
+fi
 
-echo "Starting Flask backend on :5001..."
-uv run "$SCRIPT_DIR/backend/app.py" &
-BACKEND_PID=$!
+tmux new-session -d -s "$SESSION" -n backend
+tmux send-keys -t "$SESSION:backend" "cd '$SCRIPT_DIR/backend' && uv pip install -r requirements.txt && uv run app.py" Enter
 
-echo "Starting Vite dev server on :5173..."
-cd "$SCRIPT_DIR/frontend"
-npm run dev &
-FRONTEND_PID=$!
+tmux new-window -t "$SESSION" -n frontend
+tmux send-keys -t "$SESSION:frontend" "cd '$SCRIPT_DIR/frontend' && npm run dev" Enter
 
-trap "kill $BACKEND_PID $FRONTEND_PID 2>/dev/null" EXIT
-
-echo ""
-echo "Claude Memory Manager is running!"
+echo "Claude Memory Manager is running in tmux session '$SESSION'."
 echo "  Frontend: http://localhost:5173"
 echo "  Backend:  http://localhost:5001"
 echo ""
-echo "Press Ctrl+C to stop."
+echo "  tmux attach -t $SESSION    # attach"
+echo "  tmux kill-session -t $SESSION  # stop"
 
-wait
+tmux attach -t "$SESSION"
