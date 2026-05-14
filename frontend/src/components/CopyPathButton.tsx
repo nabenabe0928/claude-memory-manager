@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { altKey } from "../utils";
 import "./CopyPathButton.css";
 
 interface Props {
@@ -16,7 +17,7 @@ export function CopyPathButton({ path }: Props) {
   };
 
   return (
-    <button className="copy-path-btn" onClick={handleCopy} title={`${path} (Copy by Opt+P)`}>
+    <button className="copy-path-btn" onClick={handleCopy} title={`${path} (Copy by ${altKey}+P)`}>
       {copied ? "Copied!" : "Copy path"}
     </button>
   );

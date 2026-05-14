@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { Session } from "../types";
-import { formatSize } from "../utils";
+import { formatSize, modKey } from "../utils";
 import { DeleteConfirmDialog } from "./DeleteConfirmDialog";
 import { RefreshButton } from "./RefreshButton";
 import "./SessionList.css";
@@ -24,7 +24,7 @@ export function SessionList({ sessions, projectName, onBack, onSelect, onDelete,
 
   return (
     <div className="session-list">
-      <button className="back-btn" onClick={onBack} title="Back (Cmd+[)">
+      <button className="back-btn" onClick={onBack} title={`Back (${modKey}+[)`}>
         &larr; Back
       </button>
       <div className="page-title-row">

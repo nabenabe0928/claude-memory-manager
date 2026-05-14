@@ -1,4 +1,5 @@
 import type { Memory } from "../types";
+import { modKey } from "../utils";
 import { CopyPathButton } from "./CopyPathButton";
 import { RefreshButton } from "./RefreshButton";
 import "./MemoryList.css";
@@ -23,7 +24,7 @@ const TYPE_COLORS: Record<string, string> = {
 export function MemoryList({ memories, projectName, memoryDirPath, onSelect, onBack, onRefresh }: Props) {
   return (
     <div className="memory-list">
-      <button className="back-btn" onClick={onBack} title="Back (Cmd+[)">
+      <button className="back-btn" onClick={onBack} title={`Back (${modKey}+[)`}>
         &larr; Back
       </button>
       <div className="page-title-row">

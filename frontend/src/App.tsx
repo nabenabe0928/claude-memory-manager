@@ -6,6 +6,7 @@ import { MemoryDetail } from "./components/MemoryDetail";
 import { SessionList } from "./components/SessionList";
 import { SessionDetail } from "./components/SessionDetail";
 import type { Project, Memory, Session } from "./types";
+import { modKey, altKey } from "./utils";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import "./App.css";
 
@@ -247,10 +248,10 @@ function App() {
           Note: Claude Code also reads CLAUDE.md, and settings.json in ~/.claude, which are not shown here.
         </p>
         <div className="shortcut-hints">
-          <span>Back: Cmd+[</span>
-          <span>Refresh: Cmd+R</span>
-          <span>Copy path: Opt+P</span>
-          <span>Copy resume cmd: Opt+R</span>
+          <span>Back: {modKey}+[</span>
+          <span>Refresh: {modKey}+R</span>
+          <span>Copy path: {altKey}+P</span>
+          <span>Copy resume cmd: {altKey}+R</span>
         </div>
       </header>
       <div className="app-body">

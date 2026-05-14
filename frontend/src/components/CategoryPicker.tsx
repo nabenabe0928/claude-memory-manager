@@ -1,5 +1,6 @@
 import { CopyPathButton } from "./CopyPathButton";
 import { RefreshButton } from "./RefreshButton";
+import { modKey } from "../utils";
 import "./CategoryPicker.css";
 
 interface Props {
@@ -25,7 +26,7 @@ export function CategoryPicker({
 }: Props) {
   return (
     <div className="category-picker">
-      <button className="back-btn" onClick={onBack} title="Back (Cmd+[)">
+      <button className="back-btn" onClick={onBack} title={`Back (${modKey}+[)`}>
         &larr; Back to Projects
       </button>
       <div className="page-title-row">

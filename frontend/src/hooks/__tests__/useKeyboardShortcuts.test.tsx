@@ -41,7 +41,7 @@ describe("useKeyboardShortcuts", () => {
       const config = makeConfig({ view: "category", onBack: { category: back } });
       renderHook(() => useKeyboardShortcuts(config));
 
-      fireKey("[", { metaKey: true });
+      fireKey("[", { ctrlKey: true });
       expect(back).toHaveBeenCalledOnce();
     });
 
@@ -50,7 +50,7 @@ describe("useKeyboardShortcuts", () => {
       const config = makeConfig({ view: "detail", onBack: { detail: back } });
       renderHook(() => useKeyboardShortcuts(config));
 
-      fireKey("ArrowLeft", { metaKey: true });
+      fireKey("ArrowLeft", { ctrlKey: true });
       expect(back).toHaveBeenCalledOnce();
     });
 
@@ -59,7 +59,7 @@ describe("useKeyboardShortcuts", () => {
       const config = makeConfig({ view: "sessionDetail", onBack: { sessionDetail: back } });
       renderHook(() => useKeyboardShortcuts(config));
 
-      fireKey("[", { metaKey: true });
+      fireKey("[", { ctrlKey: true });
       expect(back).toHaveBeenCalledOnce();
     });
 
@@ -67,7 +67,7 @@ describe("useKeyboardShortcuts", () => {
       const config = makeConfig({ view: "projects" });
       renderHook(() => useKeyboardShortcuts(config));
 
-      fireKey("[", { metaKey: true });
+      fireKey("[", { ctrlKey: true });
       // no error, no handler called
     });
   });
@@ -78,7 +78,7 @@ describe("useKeyboardShortcuts", () => {
       const config = makeConfig({ view: "category", onBack: { category: back } });
       renderHook(() => useKeyboardShortcuts(config));
 
-      fireKey("]", { metaKey: true });
+      fireKey("]", { ctrlKey: true });
       expect(back).not.toHaveBeenCalled();
     });
   });
@@ -91,7 +91,7 @@ describe("useKeyboardShortcuts", () => {
         const config = makeConfig({ view });
         renderHook(() => useKeyboardShortcuts(config));
 
-        fireKey("r", { metaKey: true });
+        fireKey("r", { ctrlKey: true });
         expect(config.onRefresh[view]).toHaveBeenCalledOnce();
       });
     });
@@ -181,7 +181,7 @@ describe("useKeyboardShortcuts", () => {
 
       const input = document.createElement("input");
       document.body.appendChild(input);
-      input.dispatchEvent(new KeyboardEvent("keydown", { key: "[", metaKey: true, bubbles: true }));
+      input.dispatchEvent(new KeyboardEvent("keydown", { key: "[", ctrlKey: true, bubbles: true }));
       document.body.removeChild(input);
 
       expect(back).not.toHaveBeenCalled();
@@ -193,7 +193,7 @@ describe("useKeyboardShortcuts", () => {
 
       const textarea = document.createElement("textarea");
       document.body.appendChild(textarea);
-      textarea.dispatchEvent(new KeyboardEvent("keydown", { key: "r", metaKey: true, bubbles: true }));
+      textarea.dispatchEvent(new KeyboardEvent("keydown", { key: "r", ctrlKey: true, bubbles: true }));
       document.body.removeChild(textarea);
 
       expect(config.onRefresh.category).not.toHaveBeenCalled();

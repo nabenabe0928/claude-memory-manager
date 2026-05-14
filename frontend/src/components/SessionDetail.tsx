@@ -5,6 +5,7 @@ import { DeleteConfirmDialog } from "./DeleteConfirmDialog";
 import { CopyPathButton } from "./CopyPathButton";
 import { RefreshButton } from "./RefreshButton";
 import type { Session } from "../types";
+import { modKey, altKey } from "../utils";
 import "./SessionDetail.css";
 
 interface MessagePart {
@@ -151,7 +152,7 @@ export function SessionDetail({ session, projectId, onBack, onDelete, onDuplicat
   return (
     <div className="session-detail">
       <div className="session-detail-header">
-        <button className="back-btn" onClick={onBack} title="Back (Cmd+[)">
+        <button className="back-btn" onClick={onBack} title={`Back (${modKey}+[)`}>
           &larr; Back to Sessions
         </button>
         <div className="detail-actions">
@@ -159,7 +160,7 @@ export function SessionDetail({ session, projectId, onBack, onDelete, onDuplicat
           <button
             className="copy-path-btn"
             onClick={handleCopyResume}
-            title={`${resumeCommand} (Copy by Opt+R)`}
+            title={`${resumeCommand} (Copy by ${altKey}+R)`}
           >
             {copiedResume ? "Copied!" : "Copy resume cmd"}
           </button>

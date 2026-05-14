@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { Memory } from "../types";
+import { modKey } from "../utils";
 import { DeleteConfirmDialog } from "./DeleteConfirmDialog";
 import { CopyPathButton } from "./CopyPathButton";
 import { RefreshButton } from "./RefreshButton";
@@ -17,7 +18,7 @@ export function MemoryDetail({ memory, onDelete, onBack, onRefresh }: Props) {
 
   return (
     <div className="memory-detail">
-      <button className="back-btn" onClick={onBack} title="Back (Cmd+[)">
+      <button className="back-btn" onClick={onBack} title={`Back (${modKey}+[)`}>
         &larr; Back to Memories
       </button>
       <div className="detail-header">

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import type { View } from "../App";
 import type { Project, Memory, Session } from "../types";
+import { isMac } from "../utils";
 
 interface KeyboardShortcutConfig {
   view: View;
@@ -48,19 +49,20 @@ export function useKeyboardShortcuts(config: KeyboardShortcutConfig): void {
       if (isEditableTarget(e)) return;
 
       const c = configRef.current;
+      const mod = isMac ? e.metaKey : e.ctrlKey;
 
-      if (e.metaKey && (e.key === "[" || e.key === "ArrowLeft")) {
+      if (mod && (e.key === "[" || e.key === "ArrowLeft")) {
         e.preventDefault();
         c.onBack[c.view]?.();
         return;
       }
 
-      if (e.metaKey && (e.key === "]" || e.key === "ArrowRight")) {
+      if (mod && (e.key === "]" || e.key === "ArrowRight")) {
         e.preventDefault();
         return;
       }
 
-      if (e.metaKey && e.key === "r") {
+      if (mod && e.key === "r") {
         e.preventDefault();
         c.onRefresh[c.view]();
         return;

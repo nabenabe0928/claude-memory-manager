@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { modKey } from "../utils";
 
 interface Props {
   onRefresh: () => Promise<void> | void;
@@ -21,7 +22,7 @@ export function RefreshButton({ onRefresh }: Props) {
       className="refresh-btn"
       onClick={handleClick}
       disabled={refreshing}
-      title="Refresh (Cmd+R)"
+      title={`Refresh (${modKey}+R)`}
     >
       {refreshing ? "Refreshing..." : "Refresh"}
     </button>
