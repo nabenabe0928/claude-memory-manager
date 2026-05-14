@@ -11,7 +11,7 @@ if tmux has-session -t "$SESSION" 2>/dev/null; then
 fi
 
 tmux new-session -d -s "$SESSION" -n backend
-tmux send-keys -t "$SESSION:backend" "cd '$SCRIPT_DIR/backend' && uv pip install -r requirements.txt && uv run app.py" Enter
+tmux send-keys -t "$SESSION:backend" "cd '$SCRIPT_DIR/backend' && uv run app.py" Enter
 
 tmux new-window -t "$SESSION" -n frontend
 tmux send-keys -t "$SESSION:frontend" "cd '$SCRIPT_DIR/frontend' && npm run dev" Enter

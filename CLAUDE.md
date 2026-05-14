@@ -29,11 +29,10 @@ Claude Memory Manager is a web app for browsing and managing Claude Code's per-p
 
 ```bash
 cd backend
-uv pip install -r requirements.txt
 uv run app.py
 ```
 
-Dependencies: flask, flask-cors, python-frontmatter. Uses `uv` as the package manager.
+Dependencies are declared in `backend/pyproject.toml`. Uses `uv` as the package manager.
 
 ### Frontend (React / TypeScript / Vite)
 
