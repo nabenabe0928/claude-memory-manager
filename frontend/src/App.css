@@ -16,6 +16,12 @@
   font-weight: 700;
 }
 
+.app-note {
+  margin: 6px 0 0;
+  font-size: 14px;
+  color: #888;
+}
+
 .app-body {
   flex: 1;
   overflow-y: auto;

@@ -144,6 +144,9 @@ function App() {
     <div className="app">
       <header className="app-header">
         <h1>Claude Memory Manager</h1>
+        <p className="app-note">
+          Note: Claude Code also reads CLAUDE.md, and settings.json in ~/.claude, which are not shown here.
+        </p>
       </header>
       <div className="app-body">
         {view === "projects" && (
