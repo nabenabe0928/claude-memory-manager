@@ -125,7 +125,7 @@ function TreeNodeRow({
         ) : (
           <span className="tree-toggle-spacer" />
         )}
-        {node.isProject ? <ProjectIcon /> : <FolderIcon open={isExpanded} />}
+        {node.isProject && !node.hasChildren ? <ProjectIcon /> : <FolderIcon open={isExpanded} />}
         <span
           className={`tree-node-name ${node.isProject ? "tree-clickable" : node.hasChildren ? "tree-dir-clickable" : "tree-dir"}`}
           onClick={node.isProject ? handleProjectClick : node.hasChildren ? handleToggle : undefined}
