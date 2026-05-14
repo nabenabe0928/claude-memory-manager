@@ -5,6 +5,7 @@ import { MemoryList } from "./components/MemoryList";
 import { MemoryDetail } from "./components/MemoryDetail";
 import { SessionList } from "./components/SessionList";
 import { SessionDetail } from "./components/SessionDetail";
+import { QuickOpen } from "./components/QuickOpen";
 import type { Project, Memory, Session, TreeChild, TreeResponse } from "./types";
 import { modKey, altKey } from "./utils";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
@@ -20,6 +21,7 @@ function App() {
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
   const [view, setView] = useState<View>("projects");
   const [toast, setToast] = useState<string | null>(null);
+  const [paletteOpen, setPaletteOpen] = useState(false);
 
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set());
   const [childrenCache, setChildrenCache] = useState<Map<string, TreeChild[]>>(new Map());
@@ -109,6 +111,35 @@ function App() {
           setView("category");
         }
       });
+  };
+
+  const handleOpenPalette = () => {
+    setPaletteOpen((prev) => !prev);
+  };
+
+  const handlePaletteNavigateProject = (project: Project) => {
+    setPaletteOpen(false);
+    handleSelectProject(project);
+  };
+
+  const handlePaletteNavigateMemory = (project: Project, memory: Memory) => {
+    setPaletteOpen(false);
+    setSelectedProject(project);
+    setSelectedMemory(memory);
+    setView("detail");
+    fetch(`/api/projects/${project.id}/memories`)
+      .then((r) => r.json())
+      .then((data) => setMemories(data));
+  };
+
+  const handlePaletteNavigateSession = (project: Project, session: Session) => {
+    setPaletteOpen(false);
+    setSelectedProject(project);
+    setSelectedSession(session);
+    setView("sessionDetail");
+    fetch(`/api/projects/${project.id}/sessions`)
+      .then((r) => r.json())
+      .then((data) => setSessions(data));
   };
 
   const handleRefreshProjects = () => {
@@ -215,6 +246,7 @@ function App() {
       sessionDetail: handleRefreshSessions,
     },
     onToast: setToast,
+    onOpenPalette: handleOpenPalette,
   });
 
   const isPopState = useRef(false);
@@ -283,6 +315,7 @@ function App() {
           <span>Refresh: {modKey}+R</span>
           <span>Copy path: {altKey}+P</span>
           <span>Copy resume cmd: {altKey}+R</span>
+          <span>Quick Open: {modKey}+P</span>
         </div>
       </header>
       <div className="app-body">
@@ -354,6 +387,14 @@ function App() {
         )}
       </div>
       {toast && <div className="toast">{toast}</div>}
+      {paletteOpen && (
+        <QuickOpen
+          onNavigateToProject={handlePaletteNavigateProject}
+          onNavigateToMemory={handlePaletteNavigateMemory}
+          onNavigateToSession={handlePaletteNavigateSession}
+          onClose={() => setPaletteOpen(false)}
+        />
+      )}
     </div>
   );
 }

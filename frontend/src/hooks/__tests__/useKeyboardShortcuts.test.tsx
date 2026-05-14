@@ -25,6 +25,7 @@ function makeConfig(overrides: Record<string, unknown> = {}) {
       sessionDetail: vi.fn(),
     },
     onToast: vi.fn(),
+    onOpenPalette: vi.fn(),
     ...overrides,
   };
 }

@@ -1,0 +1,126 @@
+.quickopen-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 15vh;
+  z-index: 200;
+}
+
+.quickopen-modal {
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.25);
+  width: 500px;
+  max-width: 90vw;
+  max-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.quickopen-input {
+  width: 100%;
+  padding: 14px 16px;
+  font-size: 15px;
+  border: none;
+  border-bottom: 1px solid #e0e0e0;
+  outline: none;
+  font-family: inherit;
+  background: white;
+  border-radius: 10px 10px 0 0;
+  box-sizing: border-box;
+}
+
+.quickopen-input::placeholder {
+  color: #aaa;
+}
+
+.quickopen-results {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.quickopen-result-item {
+  padding: 8px 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  transition: background-color 0.1s;
+}
+
+.quickopen-result-item:hover {
+  background: #f5f5f5;
+}
+
+.quickopen-result-item.quickopen-selected {
+  background: #e3f2fd;
+}
+
+.quickopen-result-item mark {
+  background: none;
+  font-weight: 700;
+  color: #1565c0;
+}
+
+.quickopen-result-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.quickopen-result-meta {
+  margin-left: auto;
+  font-size: 11px;
+  color: #999;
+  flex-shrink: 0;
+}
+
+.quickopen-kind-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.quickopen-kind-memory {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.quickopen-kind-session {
+  background: #e0e0e0;
+  color: #555;
+}
+
+.quickopen-kind-dir {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.quickopen-loading,
+.quickopen-empty {
+  padding: 16px;
+  text-align: center;
+  color: #999;
+  font-size: 13px;
+}
+
+.quickopen-hint {
+  padding: 6px 16px;
+  font-size: 11px;
+  color: #bbb;
+  border-top: 1px solid #f0f0f0;
+  text-align: center;
+}

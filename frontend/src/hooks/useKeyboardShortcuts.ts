@@ -12,6 +12,7 @@ interface KeyboardShortcutConfig {
   onBack: Partial<Record<View, () => void>>;
   onRefresh: Record<View, () => Promise<void> | void>;
   onToast: (message: string) => void;
+  onOpenPalette: () => void;
 }
 
 function isEditableTarget(e: KeyboardEvent): boolean {
@@ -47,10 +48,16 @@ export function useKeyboardShortcuts(config: KeyboardShortcutConfig): void {
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (isEditableTarget(e)) return;
-
       const c = configRef.current;
       const mod = isMac ? e.metaKey : e.ctrlKey;
+
+      if (mod && e.key === "p") {
+        e.preventDefault();
+        c.onOpenPalette();
+        return;
+      }
+
+      if (isEditableTarget(e)) return;
 
       if (mod && (e.key === "[" || e.key === "ArrowLeft")) {
         e.preventDefault();
