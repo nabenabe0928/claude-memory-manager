@@ -2,6 +2,9 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+> [!TIPS]
+> If you need to understand the project structure, please read [project-structure.md](project-structure.md).
+
 ## Subagent Policy
 
 If the user query relates to the following, use one of the following subagents:
