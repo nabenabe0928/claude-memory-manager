@@ -49,7 +49,6 @@ export function SessionDetail({ session, projectId, onBack, onDelete, onDuplicat
   const [showConfirm, setShowConfirm] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [copiedResume, setCopiedResume] = useState(false);
-  const [duplicating, setDuplicating] = useState(false);
   const [confirmDeleteLine, setConfirmDeleteLine] = useState<number | null>(null);
 
   const resumeCommand = `claude --resume ${session.id}`;
@@ -109,13 +108,9 @@ export function SessionDetail({ session, projectId, onBack, onDelete, onDuplicat
           <CopyPathButton path={session.path} />
           <button
             className="copy-path-btn"
-            onClick={() => {
-              setDuplicating(true);
-              onDuplicate(session.id);
-            }}
-            disabled={duplicating}
+            onClick={() => onDuplicate(session.id)}
           >
-            {duplicating ? "Duplicating..." : "Duplicate"}
+            Duplicate
           </button>
           <button
             className="delete-btn"

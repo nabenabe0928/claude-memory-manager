@@ -109,6 +109,22 @@ def _resolve_project_memory_dir(project_id: str) -> Path:
     return memory_dir
 
 
+def _build_session_dict(
+    jsonl_file: Path, project_dir: Path, *, summary: str | None = None
+) -> dict:
+    stat = jsonl_file.stat()
+    session_id = jsonl_file.stem
+    return {
+        "id": session_id,
+        "filename": jsonl_file.name,
+        "path": str(jsonl_file),
+        "summary": summary if summary is not None else _extract_session_summary(jsonl_file),
+        "modifiedAt": datetime.fromtimestamp(stat.st_mtime).isoformat(),
+        "sizeBytes": stat.st_size,
+        "hasCompanionDir": (project_dir / session_id).is_dir(),
+    }
+
+
 def _resolve_session_file(project_id: str, session_id: str) -> Path:
     project_dir = _resolve_project_dir(project_id)
     if "/" in session_id or ".." in session_id:
@@ -171,20 +187,7 @@ def list_sessions(project_id: str):
     for f in sorted(project_dir.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True):
         if f.suffix != ".jsonl":
             continue
-        stat = f.stat()
-        session_id = f.stem
-        companion_dir = project_dir / session_id
-        sessions.append(
-            {
-                "id": session_id,
-                "filename": f.name,
-                "path": str(f),
-                "summary": _extract_session_summary(f),
-                "modifiedAt": datetime.fromtimestamp(stat.st_mtime).isoformat(),
-                "sizeBytes": stat.st_size,
-                "hasCompanionDir": companion_dir.is_dir(),
-            }
-        )
+        sessions.append(_build_session_dict(f, project_dir))
     return jsonify(sessions)
 
 
@@ -299,6 +302,8 @@ def duplicate_session(project_id: str, session_id: str):
     jsonl_file = _resolve_session_file(project_id, session_id)
     project_dir = jsonl_file.parent
 
+    summary = _extract_session_summary(jsonl_file)
+
     new_id = str(uuid.uuid4())
     new_jsonl = project_dir / f"{new_id}.jsonl"
     shutil.copy2(jsonl_file, new_jsonl)
@@ -307,21 +312,7 @@ def duplicate_session(project_id: str, session_id: str):
     if companion_dir.is_dir():
         shutil.copytree(companion_dir, project_dir / new_id)
 
-    stat = new_jsonl.stat()
-    return (
-        jsonify(
-            {
-                "id": new_id,
-                "filename": new_jsonl.name,
-                "path": str(new_jsonl),
-                "summary": _extract_session_summary(new_jsonl),
-                "modifiedAt": datetime.fromtimestamp(stat.st_mtime).isoformat(),
-                "sizeBytes": stat.st_size,
-                "hasCompanionDir": (project_dir / new_id).is_dir(),
-            }
-        ),
-        201,
-    )
+    return jsonify(_build_session_dict(new_jsonl, project_dir, summary=summary)), 201
 
 
 if __name__ == "__main__":

@@ -157,7 +157,8 @@ function App() {
         );
         setSelectedSession(null);
         setView("sessions");
-      });
+      })
+      .catch(console.error);
   };
 
   if (loading) {
