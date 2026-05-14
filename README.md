@@ -82,3 +82,7 @@ cd frontend && npm test
 The backend reads directly from `~/.claude/projects/` on the filesystem — there is no database. Projects are directories, memories are `.md` files with YAML frontmatter, and sessions are `.jsonl` conversation transcripts.
 
 The frontend provides a drill-down navigation flow: **Projects → Category (memories / sessions) → List → Detail**.
+
+## License
+
+[MIT](LICENSE)
