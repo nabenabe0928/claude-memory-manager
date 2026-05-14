@@ -42,7 +42,10 @@ function getCopyPath(
 
 export function useKeyboardShortcuts(config: KeyboardShortcutConfig): void {
   const configRef = useRef(config);
-  configRef.current = config;
+
+  useEffect(() => {
+    configRef.current = config;
+  });
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
