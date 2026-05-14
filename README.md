@@ -48,11 +48,11 @@ cd frontend && npm install && npm run dev
 
 The Vite dev server proxies `/api` requests to the Flask backend automatically.
 
-## Testing
+## Testing & Formatting
 
 ```bash
-./test_backend.sh    # runs pytest
-./test_frontend.sh   # runs tsc + vitest
+./tests.sh
+./formats.sh
 ```
 
 ## How It Works

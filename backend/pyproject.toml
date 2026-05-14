@@ -6,6 +6,7 @@ dependencies = [
     "flask",
     "flask-cors",
     "python-frontmatter",
+    "ruff>=0.15.13",
 ]
 
 [tool.ruff]

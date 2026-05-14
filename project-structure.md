@@ -4,8 +4,8 @@
 .
 ├── CLAUDE.md                          # Claude Code instructions
 ├── start.sh                           # Starts backend + frontend via tmux
-├── test_backend.sh                    # Runs backend tests
-├── test_frontend.sh                   # Runs frontend tests
+├── tests.sh                           # Run tests
+├── formats.sh                         # Run formatting
 │
 ├── .claude/
 │   ├── agents/                        # Custom subagent definitions
