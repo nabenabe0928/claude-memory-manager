@@ -374,6 +374,7 @@ function App() {
         {view === "detail" && selectedMemory && (
           <MemoryDetail
             memory={selectedMemory}
+            projectDisplayName={selectedProject?.displayName ?? ""}
             onDelete={handleDeleteMemory}
             onBack={handleBackToMemories}
             onRefresh={handleRefreshMemory}

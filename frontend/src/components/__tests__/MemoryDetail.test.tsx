@@ -8,7 +8,7 @@ describe("MemoryDetail", () => {
   describe("rendering", () => {
     it("displays the memory name, description, type, and filename", () => {
       render(
-        <MemoryDetail memory={makeMemory()} onDelete={vi.fn()} onBack={vi.fn()} onRefresh={vi.fn()} />
+        <MemoryDetail memory={makeMemory()} projectDisplayName="" onDelete={vi.fn()} onBack={vi.fn()} onRefresh={vi.fn()} />
       );
       expect(screen.getByRole("heading", { name: "test-memory" })).toBeInTheDocument();
       expect(screen.getByText("A test memory description")).toBeInTheDocument();
@@ -18,7 +18,7 @@ describe("MemoryDetail", () => {
 
     it("displays the memory content in a pre block", () => {
       render(
-        <MemoryDetail memory={makeMemory()} onDelete={vi.fn()} onBack={vi.fn()} onRefresh={vi.fn()} />
+        <MemoryDetail memory={makeMemory()} projectDisplayName="" onDelete={vi.fn()} onBack={vi.fn()} onRefresh={vi.fn()} />
       );
       expect(screen.getByText("Memory content body")).toBeInTheDocument();
     });
@@ -27,7 +27,7 @@ describe("MemoryDetail", () => {
   describe("delete flow", () => {
     it("does not show confirmation dialog initially", () => {
       render(
-        <MemoryDetail memory={makeMemory()} onDelete={vi.fn()} onBack={vi.fn()} onRefresh={vi.fn()} />
+        <MemoryDetail memory={makeMemory()} projectDisplayName="" onDelete={vi.fn()} onBack={vi.fn()} onRefresh={vi.fn()} />
       );
       expect(screen.queryByText(/are you sure/i)).not.toBeInTheDocument();
     });
@@ -35,7 +35,7 @@ describe("MemoryDetail", () => {
     it("shows confirmation dialog when Delete button is clicked", async () => {
       const user = userEvent.setup();
       render(
-        <MemoryDetail memory={makeMemory()} onDelete={vi.fn()} onBack={vi.fn()} onRefresh={vi.fn()} />
+        <MemoryDetail memory={makeMemory()} projectDisplayName="" onDelete={vi.fn()} onBack={vi.fn()} onRefresh={vi.fn()} />
       );
 
       await user.click(screen.getByRole("button", { name: "Delete" }));
@@ -48,6 +48,7 @@ describe("MemoryDetail", () => {
       render(
         <MemoryDetail
           memory={makeMemory({ filename: "to-delete.md" })}
+          projectDisplayName=""
           onDelete={onDelete}
           onBack={vi.fn()}
           onRefresh={vi.fn()}
@@ -64,7 +65,7 @@ describe("MemoryDetail", () => {
     it("hides confirmation dialog when cancelled", async () => {
       const user = userEvent.setup();
       render(
-        <MemoryDetail memory={makeMemory()} onDelete={vi.fn()} onBack={vi.fn()} onRefresh={vi.fn()} />
+        <MemoryDetail memory={makeMemory()} projectDisplayName="" onDelete={vi.fn()} onBack={vi.fn()} onRefresh={vi.fn()} />
       );
 
       await user.click(screen.getByRole("button", { name: "Delete" }));
@@ -80,7 +81,7 @@ describe("MemoryDetail", () => {
       const user = userEvent.setup();
       const onBack = vi.fn();
       render(
-        <MemoryDetail memory={makeMemory()} onDelete={vi.fn()} onBack={onBack} onRefresh={vi.fn()} />
+        <MemoryDetail memory={makeMemory()} projectDisplayName="" onDelete={vi.fn()} onBack={onBack} onRefresh={vi.fn()} />
       );
 
       await user.click(screen.getByRole("button", { name: /back to memories/i }));
@@ -93,6 +94,7 @@ describe("MemoryDetail", () => {
       render(
         <MemoryDetail
           memory={makeMemory({ content: "" })}
+          projectDisplayName=""
           onDelete={vi.fn()}
           onBack={vi.fn()}
           onRefresh={vi.fn()}

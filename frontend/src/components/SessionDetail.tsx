@@ -185,6 +185,7 @@ export function SessionDetail({ session, projectId, projectDisplayName, onBack, 
       </div>
       <h2>Session {session.id.slice(0, 8)}...</h2>
       <p className="session-detail-meta">
+        {projectDisplayName && <><span className="detail-project">Project: {projectDisplayName}</span> &middot; </>}
         {new Date(session.modifiedAt).toLocaleString()}
       </p>
       {loading ? (

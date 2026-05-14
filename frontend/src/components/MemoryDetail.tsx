@@ -13,12 +13,13 @@ import "./MemoryDetail.css";
 
 interface Props {
   memory: Memory;
+  projectDisplayName: string;
   onDelete: (filename: string) => void;
   onBack: () => void;
   onRefresh: () => Promise<void> | void;
 }
 
-export function MemoryDetail({ memory, onDelete, onBack, onRefresh }: Props) {
+export function MemoryDetail({ memory, projectDisplayName, onDelete, onBack, onRefresh }: Props) {
   const [showConfirm, setShowConfirm] = useState(false);
 
   return (
@@ -40,6 +41,7 @@ export function MemoryDetail({ memory, onDelete, onBack, onRefresh }: Props) {
         </div>
       </div>
       <div className="detail-meta">
+        {projectDisplayName && <span className="detail-project">Project: {projectDisplayName}</span>}
         <span className="detail-type">Type: {memory.type}</span>
         <span className="detail-file">File: {memory.filename}</span>
       </div>
