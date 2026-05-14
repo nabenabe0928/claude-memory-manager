@@ -24,6 +24,7 @@ interface Message {
 interface Props {
   session: Session;
   projectId: string;
+  projectDisplayName: string;
   onBack: () => void;
   onDelete: (sessionId: string) => void;
   onDuplicate: (sessionId: string) => void;
@@ -82,7 +83,7 @@ function getTextForCopy(m: Message) {
     .join("\n");
 }
 
-export function SessionDetail({ session, projectId, onBack, onDelete, onDuplicate }: Props) {
+export function SessionDetail({ session, projectId, projectDisplayName, onBack, onDelete, onDuplicate }: Props) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -100,7 +101,9 @@ export function SessionDetail({ session, projectId, onBack, onDelete, onDuplicat
     });
   };
 
-  const resumeCommand = `claude --resume ${session.id}`;
+  const resumeCommand = projectDisplayName
+    ? `cd ${projectDisplayName} && claude --resume ${session.id}`
+    : `claude --resume ${session.id}`;
 
   const handleCopyResume = () => {
     navigator.clipboard.writeText(resumeCommand).then(() => {

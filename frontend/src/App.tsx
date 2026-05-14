@@ -198,6 +198,7 @@ function App() {
     selectedProject: selectedProject ?? undefined,
     selectedMemory,
     selectedSession,
+    projectDisplayName: selectedProject?.displayName ?? "",
     onBack: {
       category: handleBackToProjects,
       memories: handleBackToCategory,
@@ -342,6 +343,7 @@ function App() {
           <SessionDetail
             session={selectedSession}
             projectId={selectedProjectId}
+            projectDisplayName={selectedProject?.displayName ?? ""}
             onBack={handleBackToSessions}
             onDelete={(id) => {
               handleDeleteSession(id);

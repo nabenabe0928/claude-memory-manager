@@ -14,6 +14,7 @@ function makeConfig(overrides: Record<string, unknown> = {}) {
     selectedProject: undefined,
     selectedMemory: null,
     selectedSession: null,
+    projectDisplayName: "",
     onBack: {},
     onRefresh: {
       projects: vi.fn(),
@@ -154,14 +155,23 @@ describe("useKeyboardShortcuts", () => {
   });
 
   describe("copy resume cmd (Alt+R)", () => {
-    it("copies resume command in sessionDetail view", () => {
+    it("copies resume command with cd prefix in sessionDetail view", () => {
       const session = makeSession({ id: "abc-123" });
-      const config = makeConfig({ view: "sessionDetail", selectedSession: session });
+      const config = makeConfig({ view: "sessionDetail", selectedSession: session, projectDisplayName: "~/my-project" });
+      renderHook(() => useKeyboardShortcuts(config));
+
+      fireKey("r", { altKey: true, code: "KeyR" });
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith("cd ~/my-project && claude --resume abc-123");
+      expect(config.onToast).toHaveBeenCalledWith("Resume command copied!");
+    });
+
+    it("copies resume command without cd when projectDisplayName is empty", () => {
+      const session = makeSession({ id: "abc-123" });
+      const config = makeConfig({ view: "sessionDetail", selectedSession: session, projectDisplayName: "" });
       renderHook(() => useKeyboardShortcuts(config));
 
       fireKey("r", { altKey: true, code: "KeyR" });
       expect(navigator.clipboard.writeText).toHaveBeenCalledWith("claude --resume abc-123");
-      expect(config.onToast).toHaveBeenCalledWith("Resume command copied!");
     });
 
     it("is no-op outside sessionDetail view", () => {

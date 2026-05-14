@@ -30,6 +30,7 @@ const defaultMessages = [
 function renderDetail(overrides: {
   session?: ReturnType<typeof makeSession>;
   projectId?: string;
+  projectDisplayName?: string;
   onBack?: () => void;
   onDelete?: (id: string) => void;
   onDuplicate?: (id: string) => void;
@@ -37,6 +38,7 @@ function renderDetail(overrides: {
   const props = {
     session: makeSession(),
     projectId: "proj-1",
+    projectDisplayName: "~/my-project",
     onBack: vi.fn(),
     onDelete: vi.fn(),
     onDuplicate: vi.fn(),

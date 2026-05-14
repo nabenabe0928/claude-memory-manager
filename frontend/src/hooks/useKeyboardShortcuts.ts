@@ -8,6 +8,7 @@ interface KeyboardShortcutConfig {
   selectedProject: Project | undefined;
   selectedMemory: Memory | null;
   selectedSession: Session | null;
+  projectDisplayName: string;
   onBack: Partial<Record<View, () => void>>;
   onRefresh: Record<View, () => Promise<void> | void>;
   onToast: (message: string) => void;
@@ -88,9 +89,10 @@ export function useKeyboardShortcuts(config: KeyboardShortcutConfig): void {
       if (e.altKey && e.code === "KeyR") {
         e.preventDefault();
         if (c.view === "sessionDetail" && c.selectedSession) {
-          navigator.clipboard.writeText(
-            `claude --resume ${c.selectedSession.id}`,
-          );
+          const cmd = c.projectDisplayName
+            ? `cd ${c.projectDisplayName} && claude --resume ${c.selectedSession.id}`
+            : `claude --resume ${c.selectedSession.id}`;
+          navigator.clipboard.writeText(cmd);
           c.onToast("Resume command copied!");
         }
         return;
