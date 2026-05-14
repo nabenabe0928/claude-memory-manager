@@ -26,7 +26,11 @@
   border-radius: 6px;
   cursor: pointer;
   transition: background-color 0.15s;
-  margin-bottom: 4px;
+  border-bottom: 1px solid #eee;
+}
+
+.memory-list li:last-child {
+  border-bottom: none;
 }
 
 .memory-list li:hover {

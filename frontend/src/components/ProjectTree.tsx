@@ -3,6 +3,50 @@ import type { Project, TreeChild, TreeResponse } from "../types";
 import { RefreshButton } from "./RefreshButton";
 import "./ProjectTree.css";
 
+function TreeIcon({ children }: { children: React.ReactNode }) {
+  return <span className="tree-icon">{children}</span>;
+}
+
+function FolderIcon({ open }: { open: boolean }) {
+  return (
+    <TreeIcon>
+      <svg viewBox="0 0 24 24" fill="#f9a825" stroke="#f57f17" strokeWidth="1">
+        {open ? (
+          <>
+            <path d="M2 6c0-1.1.9-2 2-2h5l2 2h9c1.1 0 2 .9 2 2v1H2V6z" />
+            <path d="M2 9h20l-2.5 11H4.5L2 9z" />
+          </>
+        ) : (
+          <path d="M2 6c0-1.1.9-2 2-2h5l2 2h9c1.1 0 2 .9 2 2v10c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6z" />
+        )}
+      </svg>
+    </TreeIcon>
+  );
+}
+
+function ProjectIcon() {
+  return (
+    <TreeIcon>
+      <svg viewBox="0 0 24 24" fill="none" stroke="#1565c0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="16 18 22 12 16 6" />
+        <polyline points="8 6 2 12 8 18" />
+      </svg>
+    </TreeIcon>
+  );
+}
+
+function SelfProjectIcon() {
+  return (
+    <TreeIcon>
+      <svg viewBox="0 0 24 24" fill="none" stroke="#1565c0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <line x1="12" y1="8" x2="12" y2="12" />
+        <line x1="12" y1="16" x2="12.01" y2="16" />
+      </svg>
+    </TreeIcon>
+  );
+}
+
 function CountBadges({ memoryCount, sessionCount }: { memoryCount: number; sessionCount: number }) {
   return (
     <div className="project-counts">
@@ -81,6 +125,7 @@ function TreeNodeRow({
         ) : (
           <span className="tree-toggle-spacer" />
         )}
+        {node.isProject ? <ProjectIcon /> : <FolderIcon open={isExpanded} />}
         <span
           className={`tree-node-name ${node.isProject ? "tree-clickable" : node.hasChildren ? "tree-dir-clickable" : "tree-dir"}`}
           onClick={node.isProject ? handleProjectClick : node.hasChildren ? handleToggle : undefined}
@@ -97,6 +142,7 @@ function TreeNodeRow({
           style={{ paddingLeft: `${12 + (depth + 1) * 20}px` }}
         >
           <span className="tree-toggle-spacer" />
+          <SelfProjectIcon />
           <span
             className="tree-node-name tree-clickable"
             onClick={() =>
@@ -202,6 +248,7 @@ export function ProjectTree({
         {rootResponse.selfProject && (
           <li className="tree-row tree-row-project tree-self-project">
             <span className="tree-toggle-spacer" />
+            <SelfProjectIcon />
             <span
               className="tree-node-name tree-clickable"
               onClick={handleRootSelfClick}

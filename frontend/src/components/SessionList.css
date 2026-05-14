@@ -27,9 +27,13 @@
   align-items: center;
   padding: 12px;
   border-radius: 6px;
-  margin-bottom: 4px;
   gap: 12px;
   transition: background-color 0.15s;
+  border-bottom: 1px solid #eee;
+}
+
+.session-list li:last-child {
+  border-bottom: none;
 }
 
 .session-list li:hover {
