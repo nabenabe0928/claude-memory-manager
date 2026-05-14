@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { Session } from "../types";
 import { formatSize } from "../utils";
 import { DeleteConfirmDialog } from "./DeleteConfirmDialog";
+import { RefreshButton } from "./RefreshButton";
 import "./SessionList.css";
 
 interface Props {
@@ -10,6 +11,7 @@ interface Props {
   onBack: () => void;
   onSelect: (session: Session) => void;
   onDelete: (sessionId: string) => void;
+  onRefresh: () => Promise<void> | void;
 }
 
 function formatDate(iso: string): string {
@@ -17,7 +19,7 @@ function formatDate(iso: string): string {
   return d.toLocaleString();
 }
 
-export function SessionList({ sessions, projectName, onBack, onSelect, onDelete }: Props) {
+export function SessionList({ sessions, projectName, onBack, onSelect, onDelete, onRefresh }: Props) {
   const [confirmId, setConfirmId] = useState<string | null>(null);
 
   return (
@@ -25,7 +27,10 @@ export function SessionList({ sessions, projectName, onBack, onSelect, onDelete 
       <button className="back-btn" onClick={onBack}>
         &larr; Back
       </button>
-      <h2>{projectName}</h2>
+      <div className="page-title-row">
+        <h2>{projectName}</h2>
+        <RefreshButton onRefresh={onRefresh} />
+      </div>
       <p className="subtitle">{sessions.length} sessions</p>
       {sessions.length === 0 && <p className="empty">No sessions in this project.</p>}
       <ul>

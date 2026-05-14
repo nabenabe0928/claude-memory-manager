@@ -2,15 +2,17 @@ import { useState } from "react";
 import type { Memory } from "../types";
 import { DeleteConfirmDialog } from "./DeleteConfirmDialog";
 import { CopyPathButton } from "./CopyPathButton";
+import { RefreshButton } from "./RefreshButton";
 import "./MemoryDetail.css";
 
 interface Props {
   memory: Memory;
   onDelete: (filename: string) => void;
   onBack: () => void;
+  onRefresh: () => Promise<void> | void;
 }
 
-export function MemoryDetail({ memory, onDelete, onBack }: Props) {
+export function MemoryDetail({ memory, onDelete, onBack, onRefresh }: Props) {
   const [showConfirm, setShowConfirm] = useState(false);
 
   return (
@@ -24,6 +26,7 @@ export function MemoryDetail({ memory, onDelete, onBack }: Props) {
           <p className="detail-desc">{memory.description}</p>
         </div>
         <div className="detail-actions">
+          <RefreshButton onRefresh={onRefresh} />
           <CopyPathButton path={memory.path} />
           <button className="delete-btn" onClick={() => setShowConfirm(true)}>
             Delete

@@ -14,6 +14,7 @@ function renderList(overrides: Partial<ListProps> = {}) {
     memoryDirPath: "/path/to/memory",
     onSelect: vi.fn(),
     onBack: vi.fn(),
+    onRefresh: vi.fn(),
     ...overrides,
   };
   return { props, ...render(<MemoryList {...props} />) };

@@ -1,5 +1,6 @@
 import type { Memory } from "../types";
 import { CopyPathButton } from "./CopyPathButton";
+import { RefreshButton } from "./RefreshButton";
 import "./MemoryList.css";
 
 interface Props {
@@ -8,6 +9,7 @@ interface Props {
   memoryDirPath: string;
   onSelect: (memory: Memory) => void;
   onBack: () => void;
+  onRefresh: () => Promise<void> | void;
 }
 
 const TYPE_COLORS: Record<string, string> = {
@@ -18,7 +20,7 @@ const TYPE_COLORS: Record<string, string> = {
   unknown: "#999",
 };
 
-export function MemoryList({ memories, projectName, memoryDirPath, onSelect, onBack }: Props) {
+export function MemoryList({ memories, projectName, memoryDirPath, onSelect, onBack, onRefresh }: Props) {
   return (
     <div className="memory-list">
       <button className="back-btn" onClick={onBack}>
@@ -27,6 +29,7 @@ export function MemoryList({ memories, projectName, memoryDirPath, onSelect, onB
       <div className="page-title-row">
         <h2>{projectName}</h2>
         <CopyPathButton path={memoryDirPath} />
+        <RefreshButton onRefresh={onRefresh} />
       </div>
       <p className="subtitle">{memories.length} memories</p>
       {memories.length === 0 && <p className="empty">No memories in this project.</p>}

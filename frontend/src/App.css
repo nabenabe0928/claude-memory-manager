@@ -66,3 +66,25 @@
   align-items: center;
   flex-shrink: 0;
 }
+
+.refresh-btn {
+  background: none;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 3px 10px;
+  font-size: 12px;
+  color: #666;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+
+.refresh-btn:hover {
+  background: #e0e0e0;
+  color: #333;
+}
+
+.refresh-btn:disabled {
+  cursor: default;
+  opacity: 0.6;
+}

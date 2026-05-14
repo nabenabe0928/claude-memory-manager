@@ -15,6 +15,7 @@ function renderList(overrides: Partial<ListProps> = {}) {
     onBack: vi.fn(),
     onSelect: vi.fn(),
     onDelete: vi.fn(),
+    onRefresh: vi.fn(),
     ...overrides,
   };
   return { props, ...render(<SessionList {...props} />) };

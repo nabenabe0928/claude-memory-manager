@@ -1,4 +1,5 @@
 import { CopyPathButton } from "./CopyPathButton";
+import { RefreshButton } from "./RefreshButton";
 import "./CategoryPicker.css";
 
 interface Props {
@@ -9,6 +10,7 @@ interface Props {
   onSelectMemories: () => void;
   onSelectSessions: () => void;
   onBack: () => void;
+  onRefresh: () => Promise<void> | void;
 }
 
 export function CategoryPicker({
@@ -19,6 +21,7 @@ export function CategoryPicker({
   onSelectMemories,
   onSelectSessions,
   onBack,
+  onRefresh,
 }: Props) {
   return (
     <div className="category-picker">
@@ -28,6 +31,7 @@ export function CategoryPicker({
       <div className="page-title-row">
         <h2>{projectName}</h2>
         <CopyPathButton path={projectPath} />
+        <RefreshButton onRefresh={onRefresh} />
       </div>
       <div className="categories">
         <button

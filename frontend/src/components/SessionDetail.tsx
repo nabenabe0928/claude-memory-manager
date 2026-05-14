@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { DeleteConfirmDialog } from "./DeleteConfirmDialog";
 import { CopyPathButton } from "./CopyPathButton";
+import { RefreshButton } from "./RefreshButton";
 import type { Session } from "../types";
 import "./SessionDetail.css";
 
@@ -82,6 +83,12 @@ export function SessionDetail({ session, projectId, onBack, onDelete, onDuplicat
       });
   };
 
+  const handleRefresh = async () => {
+    const r = await fetch(`/api/projects/${projectId}/sessions/${session.id}`);
+    const data = await r.json();
+    setMessages(data);
+  };
+
   useEffect(() => {
     fetch(`/api/projects/${projectId}/sessions/${session.id}`)
       .then((r) => r.json())
@@ -98,6 +105,7 @@ export function SessionDetail({ session, projectId, onBack, onDelete, onDuplicat
           &larr; Back to Sessions
         </button>
         <div className="detail-actions">
+          <RefreshButton onRefresh={handleRefresh} />
           <button
             className="copy-path-btn"
             onClick={handleCopyResume}

@@ -15,6 +15,7 @@ function renderPicker(overrides: Partial<PickerProps> = {}) {
     onSelectMemories: vi.fn(),
     onSelectSessions: vi.fn(),
     onBack: vi.fn(),
+    onRefresh: vi.fn(),
     ...overrides,
   };
   return { props, ...render(<CategoryPicker {...props} />) };

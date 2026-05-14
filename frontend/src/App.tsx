@@ -118,6 +118,49 @@ function App() {
       });
   };
 
+  const handleRefreshProjects = () => {
+    return fetch("/api/projects")
+      .then((r) => r.json())
+      .then((data) => setProjects(data));
+  };
+
+  const handleRefreshCategory = () => {
+    return fetch("/api/projects")
+      .then((r) => r.json())
+      .then((data) => {
+        setProjects(data);
+      });
+  };
+
+  const handleRefreshMemories = () => {
+    if (!selectedProjectId) return Promise.resolve();
+    return fetch(`/api/projects/${selectedProjectId}/memories`)
+      .then((r) => r.json())
+      .then((data) => setMemories(data));
+  };
+
+  const handleRefreshMemory = () => {
+    if (!selectedProjectId) return Promise.resolve();
+    return fetch(`/api/projects/${selectedProjectId}/memories`)
+      .then((r) => r.json())
+      .then((data) => {
+        setMemories(data);
+        if (selectedMemory) {
+          const updated = data.find(
+            (m: Memory) => m.filename === selectedMemory.filename
+          );
+          setSelectedMemory(updated ?? null);
+        }
+      });
+  };
+
+  const handleRefreshSessions = () => {
+    if (!selectedProjectId) return Promise.resolve();
+    return fetch(`/api/projects/${selectedProjectId}/sessions`)
+      .then((r) => r.json())
+      .then((data) => setSessions(data));
+  };
+
   const handleDeleteSession = (sessionId: string) => {
     if (!selectedProjectId) return;
     fetch(`/api/projects/${selectedProjectId}/sessions/${sessionId}`, {
@@ -175,7 +218,7 @@ function App() {
       </header>
       <div className="app-body">
         {view === "projects" && (
-          <ProjectList projects={projects} onSelect={handleSelectProject} />
+          <ProjectList projects={projects} onSelect={handleSelectProject} onRefresh={handleRefreshProjects} />
         )}
         {view === "category" && selectedProject && (
           <CategoryPicker
@@ -186,6 +229,7 @@ function App() {
             onSelectMemories={handleSelectMemories}
             onSelectSessions={handleSelectSessions}
             onBack={handleBackToProjects}
+            onRefresh={handleRefreshCategory}
           />
         )}
         {view === "memories" && (
@@ -195,6 +239,7 @@ function App() {
             memoryDirPath={selectedProject ? selectedProject.path + "/memory" : ""}
             onSelect={handleSelectMemory}
             onBack={handleBackToCategory}
+            onRefresh={handleRefreshMemories}
           />
         )}
         {view === "detail" && selectedMemory && (
@@ -202,6 +247,7 @@ function App() {
             memory={selectedMemory}
             onDelete={handleDeleteMemory}
             onBack={handleBackToMemories}
+            onRefresh={handleRefreshMemory}
           />
         )}
         {view === "sessions" && (
@@ -211,6 +257,7 @@ function App() {
             onBack={handleBackToCategory}
             onSelect={handleSelectSession}
             onDelete={handleDeleteSession}
+            onRefresh={handleRefreshSessions}
           />
         )}
         {view === "sessionDetail" && selectedSession && selectedProjectId && (

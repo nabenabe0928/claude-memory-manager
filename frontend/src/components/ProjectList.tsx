@@ -1,15 +1,20 @@
 import type { Project } from "../types";
+import { RefreshButton } from "./RefreshButton";
 import "./ProjectList.css";
 
 interface Props {
   projects: Project[];
   onSelect: (id: string) => void;
+  onRefresh: () => Promise<void> | void;
 }
 
-export function ProjectList({ projects, onSelect }: Props) {
+export function ProjectList({ projects, onSelect, onRefresh }: Props) {
   return (
     <div className="project-list">
-      <h2>Projects</h2>
+      <div className="page-title-row">
+        <h2>Projects</h2>
+        <RefreshButton onRefresh={onRefresh} />
+      </div>
       {projects.length === 0 && <p className="empty">No projects found.</p>}
       <ul>
         {projects.map((p) => (
