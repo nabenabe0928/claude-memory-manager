@@ -183,26 +183,48 @@ def get_session(project_id: str, session_id: str):
                 continue
             message = msg.get("message", {})
             content = message.get("content", "")
-            text = ""
             if isinstance(content, str):
                 if content.lstrip().startswith("<"):
                     continue
-                text = content
+                if content.strip():
+                    messages.append({
+                        "role": msg_type,
+                        "parts": [{"type": "text", "text": content}],
+                    })
             elif isinstance(content, list):
                 parts = []
                 for part in content:
-                    if isinstance(part, dict) and part.get("type") == "text":
-                        parts.append(part["text"])
-                    elif isinstance(part, dict) and part.get("type") == "image":
-                        parts.append("[Image]")
-                    elif isinstance(part, dict) and part.get("type") == "tool_use":
-                        parts.append(f"[Tool: {part.get('name', '?')}]")
-                    elif isinstance(part, dict) and part.get("type") == "tool_result":
-                        parts.append("[Tool result]")
-                text = "\n".join(parts)
-            if not text.strip():
-                continue
-            messages.append({"role": msg_type, "text": text})
+                    if not isinstance(part, dict):
+                        continue
+                    ptype = part.get("type")
+                    if ptype == "text":
+                        parts.append({"type": "text", "text": part["text"]})
+                    elif ptype == "image":
+                        parts.append({"type": "image", "label": "[Image]"})
+                    elif ptype == "tool_use":
+                        name = part.get("name", "?")
+                        detail = json.dumps(part.get("input", {}), indent=2, ensure_ascii=False)
+                        parts.append({
+                            "type": "tool_use",
+                            "label": f"[Tool: {name}]",
+                            "detail": detail,
+                        })
+                    elif ptype == "tool_result":
+                        raw = part.get("content", "")
+                        if isinstance(raw, list):
+                            detail = "\n".join(
+                                p.get("text", "") for p in raw if isinstance(p, dict) and p.get("type") == "text"
+                            )
+                        else:
+                            detail = str(raw)
+                        is_error = part.get("is_error", False)
+                        parts.append({
+                            "type": "tool_result",
+                            "label": "[Tool result]" if not is_error else "[Tool result (error)]",
+                            "detail": detail,
+                        })
+                if parts:
+                    messages.append({"role": msg_type, "parts": parts})
     return jsonify(messages)
 
 

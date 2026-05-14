@@ -83,6 +83,56 @@
   word-break: break-word;
 }
 
+.message-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.message-label {
+  font-size: 13px;
+  color: #888;
+}
+
+.collapsible-part {
+  margin: 2px 0;
+}
+
+.collapsible-toggle {
+  background: none;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 3px 10px;
+  font-size: 12px;
+  color: #666;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.15s;
+}
+
+.collapsible-toggle:hover {
+  background: #e8e8e8;
+}
+
+.collapsible-arrow {
+  display: inline-block;
+  width: 14px;
+  font-size: 10px;
+}
+
+.collapsible-detail {
+  margin: 4px 0 0 0;
+  padding: 8px 12px;
+  font-size: 12px;
+  line-height: 1.5;
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 4px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
 .empty {
   color: #999;
   font-size: 13px;
