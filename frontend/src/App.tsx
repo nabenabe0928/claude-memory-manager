@@ -132,6 +132,28 @@ function App() {
       .then((data) => setMemories(data));
   };
 
+  const handlePaletteNavigateMemories = (project: Project) => {
+    setPaletteOpen(false);
+    setSelectedProject(project);
+    fetch(`/api/projects/${project.id}/memories`)
+      .then((r) => r.json())
+      .then((data) => {
+        setMemories(data);
+        setView("memories");
+      });
+  };
+
+  const handlePaletteNavigateSessions = (project: Project) => {
+    setPaletteOpen(false);
+    setSelectedProject(project);
+    fetch(`/api/projects/${project.id}/sessions`)
+      .then((r) => r.json())
+      .then((data) => {
+        setSessions(data);
+        setView("sessions");
+      });
+  };
+
   const handlePaletteNavigateSession = (project: Project, session: Session) => {
     setPaletteOpen(false);
     setSelectedProject(project);
@@ -390,6 +412,8 @@ function App() {
       {paletteOpen && (
         <QuickOpen
           onNavigateToProject={handlePaletteNavigateProject}
+          onNavigateToMemories={handlePaletteNavigateMemories}
+          onNavigateToSessions={handlePaletteNavigateSessions}
           onNavigateToMemory={handlePaletteNavigateMemory}
           onNavigateToSession={handlePaletteNavigateSession}
           onClose={() => setPaletteOpen(false)}

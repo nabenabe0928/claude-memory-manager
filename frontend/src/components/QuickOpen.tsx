@@ -5,6 +5,8 @@ import "./QuickOpen.css";
 
 interface QuickOpenProps {
   onNavigateToProject: (project: Project) => void;
+  onNavigateToMemories: (project: Project) => void;
+  onNavigateToSessions: (project: Project) => void;
   onNavigateToMemory: (project: Project, memory: Memory) => void;
   onNavigateToSession: (project: Project, session: Session) => void;
   onClose: () => void;
@@ -135,6 +137,8 @@ function getResultKey(item: QuickOpenResult): string {
 
 export function QuickOpen({
   onNavigateToProject,
+  onNavigateToMemories,
+  onNavigateToSessions,
   onNavigateToMemory,
   onNavigateToSession,
   onClose,
@@ -441,12 +445,37 @@ export function QuickOpen({
       case "dir":
         setQuery((resolvedPath ? resolvedPath + "/" : "") + result.child.name + "/");
         break;
-      case "project":
-        onNavigateToProject(childToProject(result.child, result.displayPath));
+      case "project": {
+        const p = childToProject(result.child, result.displayPath);
+        const hasMem = result.child.memoryCount > 0;
+        const hasSess = result.child.sessionCount > 0;
+        if (hasMem && !hasSess) {
+          onNavigateToMemories(p);
+        } else if (hasSess && !hasMem) {
+          onNavigateToSessions(p);
+        } else {
+          onNavigateToProject(p);
+        }
         break;
-      case "selfProject":
-        setQuery((resolvedPath ? resolvedPath + "/" : "") + "./");
+      }
+      case "selfProject": {
+        const sp = result.tree.selfProject!;
+        const p: Project = {
+          id: sp.id,
+          displayName: result.tree.displayPath,
+          path: sp.projectPath,
+          memoryCount: sp.memoryCount,
+          sessionCount: sp.sessionCount,
+        };
+        if (sp.memoryCount > 0 && sp.sessionCount === 0) {
+          onNavigateToMemories(p);
+        } else if (sp.sessionCount > 0 && sp.memoryCount === 0) {
+          onNavigateToSessions(p);
+        } else {
+          onNavigateToProject(p);
+        }
         break;
+      }
       case "memory":
         onNavigateToMemory(childToProject(result.projectChild, result.projectDisplayPath), result.memory);
         break;
