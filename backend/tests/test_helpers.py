@@ -1,4 +1,5 @@
 """Tests for helper functions in app.py."""
+
 import json
 from pathlib import Path
 
@@ -20,7 +21,6 @@ _ENCODED_HOME = str(Path.home()).strip("/").replace("/", "-").replace(".", "-")
 
 
 class TestGetProjectDisplayName:
-
     def test_strips_home_prefix_and_restores_tilde(self):
         dirname = f"-{_ENCODED_HOME}-my-project"
         assert _get_project_display_name(dirname) == "~/my-project"
@@ -36,7 +36,6 @@ class TestGetProjectDisplayName:
 
 
 class TestGetProjects:
-
     def test_returns_empty_list_when_dir_does_not_exist(self, monkeypatch, tmp_path):
         monkeypatch.setattr(app_module, "CLAUDE_PROJECTS_DIR", tmp_path / "nonexistent")
         assert _get_projects() == []
@@ -53,27 +52,39 @@ class TestGetProjects:
         assert _get_projects() == []
 
     def test_counts_memories_excluding_memory_md(self, projects_dir):
-        create_project(projects_dir, "proj", memories={
-            "note.md": "---\nname: note\n---\ncontent",
-            "MEMORY.md": "# Index\n- note.md",
-        })
+        create_project(
+            projects_dir,
+            "proj",
+            memories={
+                "note.md": "---\nname: note\n---\ncontent",
+                "MEMORY.md": "# Index\n- note.md",
+            },
+        )
         result = _get_projects()
         assert len(result) == 1
         assert result[0]["memoryCount"] == 1
 
     def test_counts_sessions(self, projects_dir):
-        create_project(projects_dir, "proj", sessions={
-            "sess1": [{"type": "user", "message": {"content": "hi"}}],
-            "sess2": [{"type": "user", "message": {"content": "bye"}}],
-        })
+        create_project(
+            projects_dir,
+            "proj",
+            sessions={
+                "sess1": [{"type": "user", "message": {"content": "hi"}}],
+                "sess2": [{"type": "user", "message": {"content": "bye"}}],
+            },
+        )
         result = _get_projects()
         assert len(result) == 1
         assert result[0]["sessionCount"] == 2
 
     def test_project_fields(self, projects_dir):
-        create_project(projects_dir, "proj", memories={
-            "a.md": "---\nname: a\n---\nbody",
-        })
+        create_project(
+            projects_dir,
+            "proj",
+            memories={
+                "a.md": "---\nname: a\n---\nbody",
+            },
+        )
         result = _get_projects()
         proj = result[0]
         assert proj["id"] == "proj"
@@ -88,16 +99,19 @@ class TestGetProjects:
         assert result[1]["id"] == "bbb"
 
     def test_ignores_non_md_files_in_memory_dir(self, projects_dir):
-        proj_dir = create_project(projects_dir, "proj", memories={
-            "note.md": "---\nname: note\n---\n",
-        })
+        proj_dir = create_project(
+            projects_dir,
+            "proj",
+            memories={
+                "note.md": "---\nname: note\n---\n",
+            },
+        )
         (proj_dir / "memory" / "readme.txt").write_text("not a memory")
         result = _get_projects()
         assert result[0]["memoryCount"] == 1
 
 
 class TestParseMemoryFile:
-
     def test_parses_name_and_content(self, tmp_path):
         f = tmp_path / "test.md"
         f.write_text("---\nname: My Note\ndescription: A desc\n---\nHello world")
@@ -109,9 +123,7 @@ class TestParseMemoryFile:
 
     def test_extracts_type_from_nested_metadata(self, tmp_path):
         f = tmp_path / "typed.md"
-        f.write_text(
-            "---\nname: Typed\nmetadata:\n  type: preference\n---\ncontent"
-        )
+        f.write_text("---\nname: Typed\nmetadata:\n  type: preference\n---\ncontent")
         result = _parse_memory_file(f)
         assert result["type"] == "preference"
 
@@ -149,7 +161,6 @@ class TestParseMemoryFile:
 
 
 class TestExtractSessionSummary:
-
     def test_returns_first_user_text_content(self, tmp_path):
         f = tmp_path / "sess.jsonl"
         messages = [
@@ -178,29 +189,33 @@ class TestExtractSessionSummary:
 
     def test_handles_list_content_with_text_parts(self, tmp_path):
         f = tmp_path / "sess.jsonl"
-        messages = [{
-            "type": "user",
-            "message": {
-                "content": [
-                    {"type": "image", "data": "base64..."},
-                    {"type": "text", "text": "Explain this image"},
-                ],
-            },
-        }]
+        messages = [
+            {
+                "type": "user",
+                "message": {
+                    "content": [
+                        {"type": "image", "data": "base64..."},
+                        {"type": "text", "text": "Explain this image"},
+                    ],
+                },
+            }
+        ]
         f.write_text(json.dumps(messages[0]))
         assert _extract_session_summary(f) == "Explain this image"
 
     def test_skips_list_text_starting_with_angle_bracket(self, tmp_path):
         f = tmp_path / "sess.jsonl"
-        messages = [{
-            "type": "user",
-            "message": {
-                "content": [
-                    {"type": "text", "text": "<system>skip"},
-                    {"type": "text", "text": "Good text"},
-                ],
-            },
-        }]
+        messages = [
+            {
+                "type": "user",
+                "message": {
+                    "content": [
+                        {"type": "text", "text": "<system>skip"},
+                        {"type": "text", "text": "Good text"},
+                    ],
+                },
+            }
+        ]
         f.write_text(json.dumps(messages[0]))
         assert _extract_session_summary(f) == "Good text"
 
@@ -232,21 +247,26 @@ class TestExtractSessionSummary:
     def test_truncates_list_text_to_200_chars(self, tmp_path):
         f = tmp_path / "sess.jsonl"
         long_text = "B" * 500
-        messages = [{
-            "type": "user",
-            "message": {"content": [{"type": "text", "text": long_text}]},
-        }]
+        messages = [
+            {
+                "type": "user",
+                "message": {"content": [{"type": "text", "text": long_text}]},
+            }
+        ]
         f.write_text(json.dumps(messages[0]))
         result = _extract_session_summary(f)
         assert len(result) == 200
 
 
 class TestResolveProjectDir:
-
     def test_returns_path_for_existing_project(self, projects_dir):
-        create_project(projects_dir, "myproj", memories={
-            "a.md": "---\nname: a\n---\n",
-        })
+        create_project(
+            projects_dir,
+            "myproj",
+            memories={
+                "a.md": "---\nname: a\n---\n",
+            },
+        )
         with app_module.app.test_request_context():
             result = _resolve_project_dir("myproj")
         assert result == projects_dir / "myproj"
@@ -268,11 +288,14 @@ class TestResolveProjectDir:
 
 
 class TestResolveProjectMemoryDir:
-
     def test_returns_memory_dir_when_it_exists(self, projects_dir):
-        create_project(projects_dir, "proj", memories={
-            "a.md": "---\nname: a\n---\n",
-        })
+        create_project(
+            projects_dir,
+            "proj",
+            memories={
+                "a.md": "---\nname: a\n---\n",
+            },
+        )
         with app_module.app.test_request_context():
             result = _resolve_project_memory_dir("proj")
         assert result == projects_dir / "proj" / "memory"

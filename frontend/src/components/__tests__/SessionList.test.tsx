@@ -1,7 +1,8 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi } from "vitest";
-import { SessionList, formatSize } from "../SessionList";
+import { SessionList } from "../SessionList";
+import { formatSize } from "../../utils";
 import { makeSession } from "../../test-utils/factories";
 import type { ComponentProps } from "react";
 

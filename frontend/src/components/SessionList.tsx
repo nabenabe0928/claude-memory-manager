@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { Session } from "../types";
+import { formatSize } from "../utils";
 import { DeleteConfirmDialog } from "./DeleteConfirmDialog";
 import "./SessionList.css";
 
@@ -9,12 +10,6 @@ interface Props {
   onBack: () => void;
   onSelect: (session: Session) => void;
   onDelete: (sessionId: string) => void;
-}
-
-export function formatSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function formatDate(iso: string): string {

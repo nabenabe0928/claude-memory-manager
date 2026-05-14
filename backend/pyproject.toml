@@ -24,6 +24,7 @@ select = [
     "W",
     "F",
     "I",
+    "TCH",
 ]
 
 [tool.ruff.lint.isort]

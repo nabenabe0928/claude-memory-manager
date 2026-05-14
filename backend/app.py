@@ -20,7 +20,7 @@ def _get_project_display_name(dirname: str) -> str:
     home = str(Path.home()).strip("/").replace("/", "-").replace(".", "-")
     prefix = "-" + home + "-"
     if dirname.startswith(prefix):
-        return "~/" + dirname[len(prefix):]
+        return "~/" + dirname[len(prefix) :]
     return dirname.lstrip("-")
 
 
@@ -34,17 +34,21 @@ def _get_projects() -> list[dict]:
         memory_dir = entry / "memory"
         memory_count = 0
         if memory_dir.is_dir():
-            memory_count = len([f for f in memory_dir.iterdir() if f.suffix == ".md" and f.name != "MEMORY.md"])
+            memory_count = len(
+                [f for f in memory_dir.iterdir() if f.suffix == ".md" and f.name != "MEMORY.md"]
+            )
         session_count = len([f for f in entry.iterdir() if f.suffix == ".jsonl"])
         if memory_count == 0 and session_count == 0:
             continue
-        projects.append({
-            "id": entry.name,
-            "displayName": _get_project_display_name(entry.name),
-            "path": str(entry),
-            "memoryCount": memory_count,
-            "sessionCount": session_count,
-        })
+        projects.append(
+            {
+                "id": entry.name,
+                "displayName": _get_project_display_name(entry.name),
+                "path": str(entry),
+                "memoryCount": memory_count,
+                "sessionCount": session_count,
+            }
+        )
     return projects
 
 
@@ -76,7 +80,11 @@ def _extract_session_summary(filepath: Path) -> str:
                     return content[:200]
                 if isinstance(content, list):
                     for part in content:
-                        if isinstance(part, dict) and part.get("type") == "text" and not part["text"].startswith("<"):
+                        if (
+                            isinstance(part, dict)
+                            and part.get("type") == "text"
+                            and not part["text"].startswith("<")
+                        ):
                             return part["text"][:200]
     except Exception:
         pass
@@ -124,14 +132,16 @@ def list_memories(project_id: str):
             try:
                 memories.append(_parse_memory_file(f))
             except Exception:
-                memories.append({
-                    "filename": f.name,
-                    "path": str(f),
-                    "name": f.stem,
-                    "description": "(failed to parse)",
-                    "type": "unknown",
-                    "content": f.read_text(),
-                })
+                memories.append(
+                    {
+                        "filename": f.name,
+                        "path": str(f),
+                        "name": f.stem,
+                        "description": "(failed to parse)",
+                        "type": "unknown",
+                        "content": f.read_text(),
+                    }
+                )
     return jsonify(memories)
 
 
@@ -163,15 +173,17 @@ def list_sessions(project_id: str):
         stat = f.stat()
         session_id = f.stem
         companion_dir = project_dir / session_id
-        sessions.append({
-            "id": session_id,
-            "filename": f.name,
-            "path": str(f),
-            "summary": _extract_session_summary(f),
-            "modifiedAt": datetime.fromtimestamp(stat.st_mtime).isoformat(),
-            "sizeBytes": stat.st_size,
-            "hasCompanionDir": companion_dir.is_dir(),
-        })
+        sessions.append(
+            {
+                "id": session_id,
+                "filename": f.name,
+                "path": str(f),
+                "summary": _extract_session_summary(f),
+                "modifiedAt": datetime.fromtimestamp(stat.st_mtime).isoformat(),
+                "sizeBytes": stat.st_size,
+                "hasCompanionDir": companion_dir.is_dir(),
+            }
+        )
     return jsonify(sessions)
 
 
@@ -195,11 +207,13 @@ def get_session(project_id: str, session_id: str):
                 if content.lstrip().startswith("<"):
                     continue
                 if content.strip():
-                    messages.append({
-                        "role": msg_type,
-                        "lineIndex": line_index,
-                        "parts": [{"type": "text", "text": content}],
-                    })
+                    messages.append(
+                        {
+                            "role": msg_type,
+                            "lineIndex": line_index,
+                            "parts": [{"type": "text", "text": content}],
+                        }
+                    )
             elif isinstance(content, list):
                 parts = []
                 for part in content:
@@ -213,31 +227,42 @@ def get_session(project_id: str, session_id: str):
                     elif ptype == "tool_use":
                         name = part.get("name", "?")
                         detail = json.dumps(part.get("input", {}), indent=2, ensure_ascii=False)
-                        parts.append({
-                            "type": "tool_use",
-                            "label": f"[Tool: {name}]",
-                            "detail": detail,
-                        })
+                        parts.append(
+                            {
+                                "type": "tool_use",
+                                "label": f"[Tool: {name}]",
+                                "detail": detail,
+                            }
+                        )
                     elif ptype == "tool_result":
                         raw = part.get("content", "")
                         if isinstance(raw, list):
                             detail = "\n".join(
-                                p.get("text", "") for p in raw if isinstance(p, dict) and p.get("type") == "text"
+                                p.get("text", "")
+                                for p in raw
+                                if isinstance(p, dict) and p.get("type") == "text"
                             )
                         else:
                             detail = str(raw)
                         is_error = part.get("is_error", False)
-                        parts.append({
-                            "type": "tool_result",
-                            "label": "[Tool result]" if not is_error else "[Tool result (error)]",
-                            "detail": detail,
-                        })
+                        parts.append(
+                            {
+                                "type": "tool_result",
+                                "label": "[Tool result]"
+                                if not is_error
+                                else "[Tool result (error)]",
+                                "detail": detail,
+                            }
+                        )
                 if parts:
                     messages.append({"role": msg_type, "lineIndex": line_index, "parts": parts})
     return jsonify(messages)
 
 
-@app.route("/api/projects/<project_id>/sessions/<session_id>/messages/<int:line_index>", methods=["DELETE"])
+@app.route(
+    "/api/projects/<project_id>/sessions/<session_id>/messages/<int:line_index>",
+    methods=["DELETE"],
+)
 def delete_session_message(project_id: str, session_id: str, line_index: int):
     jsonl_file = _resolve_session_file(project_id, session_id)
 
