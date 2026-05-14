@@ -33,7 +33,7 @@ interface Props {
 
 const REMARK_PLUGINS = [remarkGfm];
 
-function CollapsiblePart({ part }: { part: MessagePart }) {
+function CollapsiblePart({ part, isMdRendered }: { part: MessagePart; isMdRendered: boolean }) {
   const [expanded, setExpanded] = useState(false);
   return (
     <div className="collapsible-part">
@@ -45,7 +45,15 @@ function CollapsiblePart({ part }: { part: MessagePart }) {
         {part.label}
       </button>
       {expanded && part.detail && (
-        <pre className="collapsible-detail">{part.detail}</pre>
+        isMdRendered ? (
+          <div className="markdown-body collapsible-detail-md">
+            <ReactMarkdown remarkPlugins={REMARK_PLUGINS}>
+              {part.detail}
+            </ReactMarkdown>
+          </div>
+        ) : (
+          <pre className="collapsible-detail">{part.detail}</pre>
+        )
       )}
     </div>
   );
@@ -71,7 +79,7 @@ const MessagePartView = memo(function MessagePartView({ part, isMdRendered }: { 
   if (part.type === "image") {
     return <span className="message-label">{part.label}</span>;
   }
-  return <CollapsiblePart part={part} />;
+  return <CollapsiblePart part={part} isMdRendered={isMdRendered} />;
 });
 
 function getTextForCopy(m: Message) {
@@ -199,7 +207,7 @@ export function SessionDetail({ session, projectId, projectDisplayName, onBack, 
               <div className="message-top">
                 <span className="message-role">{m.role}</span>
                 <div className="message-actions">
-                  {m.parts.some((p) => p.type === "text") && (
+                  {m.parts.some((p) => p.type === "text" || p.detail) && (
                     <button
                       className={`msg-action-btn md-btn${mdRendered.has(i) ? " md-btn-active" : ""}`}
                       onClick={() => toggleMarkdown(i)}

@@ -197,7 +197,7 @@ describe("SessionDetail", () => {
       expect(mdButtons).toHaveLength(2);
     });
 
-    it("hides MD button on messages without text parts", async () => {
+    it("shows MD button on messages with tool parts that have detail", async () => {
       const toolOnlyMessages = [
         {
           role: "assistant",
@@ -212,7 +212,7 @@ describe("SessionDetail", () => {
         expect(screen.getByText("Read file")).toBeInTheDocument();
       });
 
-      expect(screen.queryByRole("button", { name: "MD" })).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "MD" })).toBeInTheDocument();
     });
 
     it("renders text in pre tag by default", async () => {
