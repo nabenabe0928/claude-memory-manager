@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { DeleteConfirmDialog } from "./DeleteConfirmDialog";
+import { CopyPathButton } from "./CopyPathButton";
 import type { Session } from "../types";
 import "./SessionDetail.css";
 
@@ -43,12 +44,15 @@ export function SessionDetail({ session, projectId, onBack, onDelete }: Props) {
         <button className="back-btn" onClick={onBack}>
           &larr; Back to Sessions
         </button>
-        <button
-          className="delete-btn"
-          onClick={() => setShowConfirm(true)}
-        >
-          Delete
-        </button>
+        <div className="detail-actions">
+          <CopyPathButton path={session.path} />
+          <button
+            className="delete-btn"
+            onClick={() => setShowConfirm(true)}
+          >
+            Delete
+          </button>
+        </div>
       </div>
       <h2>Session {session.id.slice(0, 8)}...</h2>
       <p className="session-detail-meta">

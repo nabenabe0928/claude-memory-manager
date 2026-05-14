@@ -21,6 +21,13 @@
   font-size: 13px;
 }
 
+.detail-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
 .delete-btn {
   background: #e53935;
   color: white;

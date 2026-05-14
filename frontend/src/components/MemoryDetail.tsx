@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { Memory } from "../types";
 import { DeleteConfirmDialog } from "./DeleteConfirmDialog";
+import { CopyPathButton } from "./CopyPathButton";
 import "./MemoryDetail.css";
 
 interface Props {
@@ -22,9 +23,12 @@ export function MemoryDetail({ memory, onDelete, onBack }: Props) {
           <h2>{memory.name}</h2>
           <p className="detail-desc">{memory.description}</p>
         </div>
-        <button className="delete-btn" onClick={() => setShowConfirm(true)}>
-          Delete
-        </button>
+        <div className="detail-actions">
+          <CopyPathButton path={memory.path} />
+          <button className="delete-btn" onClick={() => setShowConfirm(true)}>
+            Delete
+          </button>
+        </div>
       </div>
       <div className="detail-meta">
         <span className="detail-type">Type: {memory.type}</span>

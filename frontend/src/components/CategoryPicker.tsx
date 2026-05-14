@@ -1,7 +1,9 @@
+import { CopyPathButton } from "./CopyPathButton";
 import "./CategoryPicker.css";
 
 interface Props {
   projectName: string;
+  projectPath: string;
   memoryCount: number;
   sessionCount: number;
   onSelectMemories: () => void;
@@ -11,6 +13,7 @@ interface Props {
 
 export function CategoryPicker({
   projectName,
+  projectPath,
   memoryCount,
   sessionCount,
   onSelectMemories,
@@ -22,7 +25,10 @@ export function CategoryPicker({
       <button className="back-btn" onClick={onBack}>
         &larr; Back to Projects
       </button>
-      <h2>{projectName}</h2>
+      <div className="page-title-row">
+        <h2>{projectName}</h2>
+        <CopyPathButton path={projectPath} />
+      </div>
       <div className="categories">
         <button
           className="category-card"

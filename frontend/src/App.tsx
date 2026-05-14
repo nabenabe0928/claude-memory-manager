@@ -152,6 +152,7 @@ function App() {
         {view === "category" && selectedProject && (
           <CategoryPicker
             projectName={selectedProject.displayName}
+            projectPath={selectedProject.path}
             memoryCount={selectedProject.memoryCount}
             sessionCount={selectedProject.sessionCount}
             onSelectMemories={handleSelectMemories}
@@ -163,6 +164,7 @@ function App() {
           <MemoryList
             memories={memories}
             projectName={selectedProject?.displayName ?? ""}
+            memoryDirPath={selectedProject ? selectedProject.path + "/memory" : ""}
             onSelect={handleSelectMemory}
             onBack={handleBackToCategory}
           />

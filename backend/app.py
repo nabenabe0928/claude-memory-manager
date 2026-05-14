@@ -38,6 +38,7 @@ def _get_projects() -> list[dict]:
         projects.append({
             "id": entry.name,
             "displayName": _get_project_display_name(entry.name),
+            "path": str(entry),
             "memoryCount": memory_count,
             "sessionCount": session_count,
         })
@@ -52,6 +53,7 @@ def _parse_memory_file(filepath: Path) -> dict:
         mem_type = metadata["metadata"].get("type", "unknown")
     return {
         "filename": filepath.name,
+        "path": str(filepath),
         "name": metadata.get("name", filepath.stem),
         "description": metadata.get("description", ""),
         "type": mem_type,
@@ -111,6 +113,7 @@ def list_memories(project_id: str):
             except Exception:
                 memories.append({
                     "filename": f.name,
+                    "path": str(f),
                     "name": f.stem,
                     "description": "(failed to parse)",
                     "type": "unknown",
@@ -150,6 +153,7 @@ def list_sessions(project_id: str):
         sessions.append({
             "id": session_id,
             "filename": f.name,
+            "path": str(f),
             "summary": _extract_session_summary(f),
             "modifiedAt": datetime.fromtimestamp(stat.st_mtime).isoformat(),
             "sizeBytes": stat.st_size,
