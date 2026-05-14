@@ -21,6 +21,16 @@ export function SessionDetail({ session, projectId, onBack, onDelete }: Props) {
   const [loading, setLoading] = useState(true);
   const [showConfirm, setShowConfirm] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const [copiedResume, setCopiedResume] = useState(false);
+
+  const resumeCommand = `claude --resume ${session.id}`;
+
+  const handleCopyResume = () => {
+    navigator.clipboard.writeText(resumeCommand).then(() => {
+      setCopiedResume(true);
+      setTimeout(() => setCopiedResume(false), 1500);
+    });
+  };
 
   const handleCopy = (text: string, index: number) => {
     navigator.clipboard.writeText(text).then(() => {
@@ -45,6 +55,13 @@ export function SessionDetail({ session, projectId, onBack, onDelete }: Props) {
           &larr; Back to Sessions
         </button>
         <div className="detail-actions">
+          <button
+            className="copy-path-btn"
+            onClick={handleCopyResume}
+            title={resumeCommand}
+          >
+            {copiedResume ? "Copied!" : "Copy resume cmd"}
+          </button>
           <CopyPathButton path={session.path} />
           <button
             className="delete-btn"
