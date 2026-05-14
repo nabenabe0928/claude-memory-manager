@@ -64,7 +64,9 @@ export function useKeyboardShortcuts(config: KeyboardShortcutConfig): void {
 
       if (mod && e.key === "r") {
         e.preventDefault();
-        c.onRefresh[c.view]();
+        Promise.resolve(c.onRefresh[c.view]()).then(() => {
+          c.onToast("Refreshed!");
+        });
         return;
       }
 

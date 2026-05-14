@@ -6,25 +6,29 @@ interface Props {
 }
 
 export function RefreshButton({ onRefresh }: Props) {
-  const [refreshing, setRefreshing] = useState(false);
+  const [state, setState] = useState<"idle" | "refreshing" | "done">("idle");
 
   const handleClick = async () => {
-    setRefreshing(true);
+    setState("refreshing");
     try {
       await onRefresh();
-    } finally {
-      setRefreshing(false);
+      setState("done");
+      setTimeout(() => setState("idle"), 1500);
+    } catch {
+      setState("idle");
     }
   };
+
+  const label = state === "refreshing" ? "Refreshing..." : state === "done" ? "Refreshed!" : "↻ Refresh";
 
   return (
     <button
       className="refresh-btn"
       onClick={handleClick}
-      disabled={refreshing}
+      disabled={state !== "idle"}
       title={`Refresh (${modKey}+R)`}
     >
-      {refreshing ? "Refreshing..." : "Refresh"}
+      {label}
     </button>
   );
 }
