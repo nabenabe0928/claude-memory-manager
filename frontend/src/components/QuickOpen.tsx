@@ -254,11 +254,11 @@ export function QuickOpen({
             setDrillLoading(false);
           } else {
             setDrillLoading(true);
-            try {
+            {
               const pid = bestChild.projectId!;
               const [memories, sessions] = await Promise.all([
-                fetch(`/api/projects/${pid}/memories`).then((r) => r.json()),
-                fetch(`/api/projects/${pid}/sessions`).then((r) => r.json()),
+                fetch(`/api/projects/${pid}/memories`).then((r) => r.ok ? r.json() : []).catch(() => []),
+                fetch(`/api/projects/${pid}/sessions`).then((r) => r.ok ? r.json() : []).catch(() => []),
               ]) as [Memory[], Session[]];
               if (!active) return;
               const items: DrillItem[] = [
@@ -267,9 +267,6 @@ export function QuickOpen({
               ];
               drillCacheRef.current.set(pid, items);
               setDrillItems(items);
-            } catch {
-              if (!active) return;
-              setDrillItems([]);
             }
             if (active) setDrillLoading(false);
           }
