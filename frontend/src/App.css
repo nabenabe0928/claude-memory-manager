@@ -22,6 +22,13 @@
   color: #888;
 }
 
+.shortcut-hints-title {
+  margin: 8px 0 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #999;
+}
+
 .shortcut-hints {
   display: flex;
   gap: 16px;
