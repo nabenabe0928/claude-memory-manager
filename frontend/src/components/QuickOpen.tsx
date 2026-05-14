@@ -350,10 +350,10 @@ export function QuickOpen({
       if (filterText === "") {
         items.push({ kind: "selfProject", tree: currentTree, score: -1, indices: [] });
       } else {
-        const label = currentTree.displayPath;
-        const m = fuzzyMatch(filterText, label);
+        const searchLabel = currentTree.displayPath === "~" ? "home" : currentTree.displayPath;
+        const m = fuzzyMatch(filterText, searchLabel);
         if (m) {
-          items.push({ kind: "selfProject", tree: currentTree, score: m.score, indices: m.indices });
+          items.push({ kind: "selfProject", tree: currentTree, score: m.score, indices: [] });
         }
       }
     }
