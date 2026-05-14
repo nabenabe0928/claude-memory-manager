@@ -55,8 +55,9 @@ npm run lint         # eslint
 - Memories = `.md` files with YAML frontmatter inside a project's `memory/` subdirectory (parsed with `python-frontmatter`)
 - Sessions = `.jsonl` files in the project directory (Claude Code conversation transcripts)
 - `MEMORY.md` is the memory index file and is excluded from memory listings
+- `/api/tree` returns a hierarchical tree of all projects (used by the frontend's `ProjectTree`)
 - DELETE endpoints remove memory files (and update `MEMORY.md`) or session files (and their companion directories)
 
-**Frontend** (`frontend/`) — React SPA with a drill-down navigation flow: Projects -> Category (memories or sessions) -> List -> Detail. Navigation state is managed via a `View` union type in `App.tsx`, not a router. All data fetching happens in `App.tsx` and is passed down as props.
+**Frontend** (`frontend/`) — React SPA with a drill-down navigation flow: ProjectTree -> Category (memories or sessions) -> List -> Detail. Navigation state is managed via a `View` union type in `App.tsx`, not a router. All data fetching happens in `App.tsx` and is passed down as props.
 
 **API proxy** — Vite proxies `/api` requests to the Flask backend (`vite.config.ts`), so the frontend calls relative paths like `/api/projects`.

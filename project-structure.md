@@ -4,6 +4,8 @@
 .
 ├── CLAUDE.md                          # Claude Code instructions
 ├── start.sh                           # Starts backend + frontend via tmux
+├── test_backend.sh                    # Runs backend tests
+├── test_frontend.sh                   # Runs frontend tests
 │
 ├── .claude/
 │   ├── agents/                        # Custom subagent definitions
@@ -19,6 +21,7 @@
 │   ├── pyproject.toml                 # Dependencies + ruff/pytest/mypy config
 │   ├── uv.lock
 │   └── tests/
+│       ├── __init__.py
 │       ├── conftest.py                # Fixtures (tmp project dirs, Flask test client)
 │       ├── testing_utils.py           # Test helper functions
 │       ├── test_api.py                # API endpoint tests
@@ -48,7 +51,7 @@
         │   └── __tests__/
         │       └── useKeyboardShortcuts.test.tsx
         ├── components/
-        │   ├── ProjectList.tsx        # Project list view
+        │   ├── ProjectTree.tsx        # Project tree view (hierarchical navigation)
         │   ├── CategoryPicker.tsx     # Memories vs Sessions picker
         │   ├── MemoryList.tsx         # Memory list for a project
         │   ├── MemoryDetail.tsx       # Single memory detail view
@@ -56,9 +59,10 @@
         │   ├── SessionDetail.tsx      # Single session detail view
         │   ├── DeleteConfirmDialog.tsx # Reusable delete confirmation dialog
         │   ├── CopyPathButton.tsx     # Copy-to-clipboard button
+        │   ├── RefreshButton.tsx      # Refresh data button
         │   └── *.css                  # Component-level styles
         ├── components/__tests__/      # Component tests (Vitest + Testing Library)
-        │   ├── ProjectList.test.tsx
+        │   ├── ProjectTree.test.tsx
         │   ├── CategoryPicker.test.tsx
         │   ├── MemoryList.test.tsx
         │   ├── MemoryDetail.test.tsx
