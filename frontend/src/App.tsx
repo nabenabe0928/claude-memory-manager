@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ProjectList } from "./components/ProjectList";
 import { CategoryPicker } from "./components/CategoryPicker";
 import { MemoryList } from "./components/MemoryList";
@@ -235,6 +235,38 @@ function App() {
     },
     onToast: setToast,
   });
+
+  const isPopState = useRef(false);
+  const isInitialRender = useRef(true);
+
+  useEffect(() => {
+    if (isPopState.current) {
+      isPopState.current = false;
+      return;
+    }
+    if (isInitialRender.current) {
+      isInitialRender.current = false;
+      history.replaceState({ view }, "");
+      return;
+    }
+    history.pushState({ view }, "");
+  }, [view]);
+
+  useEffect(() => {
+    const onPopState = (e: PopStateEvent) => {
+      isPopState.current = true;
+      const targetView = (e.state?.view ?? "projects") as View;
+      switch (targetView) {
+        case "projects": handleBackToProjects(); break;
+        case "category": handleBackToCategory(); break;
+        case "memories": handleBackToMemories(); break;
+        case "sessions": handleBackToSessions(); break;
+        default: setView(targetView); break;
+      }
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
 
   if (loading) {
     return <div className="app-loading">Loading...</div>;

@@ -42,10 +42,7 @@ function getCopyPath(
 
 export function useKeyboardShortcuts(config: KeyboardShortcutConfig): void {
   const configRef = useRef(config);
-
-  useEffect(() => {
-    configRef.current = config;
-  });
+  configRef.current = config;
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -73,7 +70,7 @@ export function useKeyboardShortcuts(config: KeyboardShortcutConfig): void {
         return;
       }
 
-      if (e.altKey && e.key === "p") {
+      if (e.altKey && e.code === "KeyP") {
         e.preventDefault();
         const path = getCopyPath(
           c.view,
@@ -88,7 +85,7 @@ export function useKeyboardShortcuts(config: KeyboardShortcutConfig): void {
         return;
       }
 
-      if (e.altKey && e.key === "r") {
+      if (e.altKey && e.code === "KeyR") {
         e.preventDefault();
         if (c.view === "sessionDetail" && c.selectedSession) {
           navigator.clipboard.writeText(

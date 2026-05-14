@@ -103,7 +103,7 @@ describe("useKeyboardShortcuts", () => {
       const config = makeConfig({ view: "category", selectedProject: project });
       renderHook(() => useKeyboardShortcuts(config));
 
-      fireKey("p", { altKey: true });
+      fireKey("p", { altKey: true, code: "KeyP" });
       expect(navigator.clipboard.writeText).toHaveBeenCalledWith("/projects/my-proj");
       expect(config.onToast).toHaveBeenCalledWith("Path copied!");
     });
@@ -113,7 +113,7 @@ describe("useKeyboardShortcuts", () => {
       const config = makeConfig({ view: "memories", selectedProject: project });
       renderHook(() => useKeyboardShortcuts(config));
 
-      fireKey("p", { altKey: true });
+      fireKey("p", { altKey: true, code: "KeyP" });
       expect(navigator.clipboard.writeText).toHaveBeenCalledWith("/projects/my-proj/memory");
     });
 
@@ -122,7 +122,7 @@ describe("useKeyboardShortcuts", () => {
       const config = makeConfig({ view: "detail", selectedMemory: memory });
       renderHook(() => useKeyboardShortcuts(config));
 
-      fireKey("p", { altKey: true });
+      fireKey("p", { altKey: true, code: "KeyP" });
       expect(navigator.clipboard.writeText).toHaveBeenCalledWith("/projects/my-proj/memory/test.md");
     });
 
@@ -131,7 +131,7 @@ describe("useKeyboardShortcuts", () => {
       const config = makeConfig({ view: "sessionDetail", selectedSession: session });
       renderHook(() => useKeyboardShortcuts(config));
 
-      fireKey("p", { altKey: true });
+      fireKey("p", { altKey: true, code: "KeyP" });
       expect(navigator.clipboard.writeText).toHaveBeenCalledWith("/projects/my-proj/session.jsonl");
     });
 
@@ -139,7 +139,7 @@ describe("useKeyboardShortcuts", () => {
       const config = makeConfig({ view: "projects" });
       renderHook(() => useKeyboardShortcuts(config));
 
-      fireKey("p", { altKey: true });
+      fireKey("p", { altKey: true, code: "KeyP" });
       expect(navigator.clipboard.writeText).not.toHaveBeenCalled();
       expect(config.onToast).not.toHaveBeenCalled();
     });
@@ -148,7 +148,7 @@ describe("useKeyboardShortcuts", () => {
       const config = makeConfig({ view: "sessions" });
       renderHook(() => useKeyboardShortcuts(config));
 
-      fireKey("p", { altKey: true });
+      fireKey("p", { altKey: true, code: "KeyP" });
       expect(navigator.clipboard.writeText).not.toHaveBeenCalled();
     });
   });
@@ -159,7 +159,7 @@ describe("useKeyboardShortcuts", () => {
       const config = makeConfig({ view: "sessionDetail", selectedSession: session });
       renderHook(() => useKeyboardShortcuts(config));
 
-      fireKey("r", { altKey: true });
+      fireKey("r", { altKey: true, code: "KeyR" });
       expect(navigator.clipboard.writeText).toHaveBeenCalledWith("claude --resume abc-123");
       expect(config.onToast).toHaveBeenCalledWith("Resume command copied!");
     });
@@ -168,7 +168,7 @@ describe("useKeyboardShortcuts", () => {
       const config = makeConfig({ view: "memories" });
       renderHook(() => useKeyboardShortcuts(config));
 
-      fireKey("r", { altKey: true });
+      fireKey("r", { altKey: true, code: "KeyR" });
       expect(navigator.clipboard.writeText).not.toHaveBeenCalled();
     });
   });
