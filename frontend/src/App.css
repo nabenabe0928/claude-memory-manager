@@ -23,21 +23,12 @@
 }
 
 .home-btn {
-  background: none;
-  border: 1px solid #ccc;
   border-radius: 6px;
   padding: 6px;
   color: #555;
-  cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: background-color 0.15s, color 0.15s;
-}
-
-.home-btn:hover {
-  background: #e0e0e0;
-  color: #333;
 }
 
 .app-note {
@@ -113,20 +104,9 @@
 }
 
 .refresh-btn {
-  background: none;
-  border: 1px solid #ccc;
-  border-radius: 4px;
   padding: 3px 10px;
   font-size: 12px;
-  color: #666;
-  cursor: pointer;
-  transition: background-color 0.15s, color 0.15s;
   white-space: nowrap;
-}
-
-.refresh-btn:hover {
-  background: #e0e0e0;
-  color: #333;
 }
 
 .refresh-btn:disabled {

@@ -1,16 +1,5 @@
 .copy-path-btn {
-  background: none;
-  border: 1px solid #ccc;
-  border-radius: 4px;
   padding: 3px 10px;
   font-size: 12px;
-  color: #666;
-  cursor: pointer;
-  transition: background-color 0.15s, color 0.15s;
   white-space: nowrap;
-}
-
-.copy-path-btn:hover {
-  background: #e0e0e0;
-  color: #333;
 }

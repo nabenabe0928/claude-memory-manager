@@ -23,7 +23,7 @@ export function RefreshButton({ onRefresh }: Props) {
 
   return (
     <button
-      className="refresh-btn"
+      className="action-btn refresh-btn"
       onClick={handleClick}
       disabled={state !== "idle"}
       title={`Refresh (${modKey}+R)`}

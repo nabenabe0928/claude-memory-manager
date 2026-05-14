@@ -162,7 +162,7 @@ export function SessionDetail({ session, projectId, projectDisplayName, onBack, 
         <div className="detail-actions">
           <RefreshButton onRefresh={handleRefresh} />
           <button
-            className="copy-path-btn"
+            className="action-btn copy-path-btn"
             onClick={handleCopyResume}
             title={`${resumeCommand} (Copy by ${altKey}+R)`}
           >
@@ -170,7 +170,7 @@ export function SessionDetail({ session, projectId, projectDisplayName, onBack, 
           </button>
           <CopyPathButton path={session.path} />
           <button
-            className="copy-path-btn"
+            className="action-btn copy-path-btn"
             onClick={() => onDuplicate(session.id)}
           >
             Duplicate
