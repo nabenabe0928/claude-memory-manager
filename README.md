@@ -10,21 +10,18 @@ View, inspect, and delete memories and session transcripts across all your proje
 - [uv](https://docs.astral.sh/uv/)
 - tmux (optional, for `start.sh`)
 
+> [!NOTE]
+> Backend uses `Flask` and `python-frontmatter`. Frontend uses `React`, and `Vite`.
+
 ## Installation
 
 ```bash
 git clone https://github.com/nabenabe0928/claude-memory-manager.git
 cd claude-memory-manager
 
-# Backend dependencies
-cd backend
-uv sync
-cd ..
-
-# Frontend dependencies
-cd frontend
-npm install
-cd ..
+# Backend & frontend dependencies
+cd backend && uv sync && cd ..
+cd frontend && npm install && cd ..
 ```
 
 ## Quick Start
@@ -43,16 +40,10 @@ Opens both servers in a tmux session:
 **Backend:**
 
 ```bash
-cd backend
-uv run app.py
-```
-
-**Frontend:**
-
-```bash
-cd frontend
-npm install
-npm run dev
+# Backend
+cd backend && uv run app.py
+# Frontend
+cd frontend && npm install && npm run dev
 ```
 
 The Vite dev server proxies `/api` requests to the Flask backend automatically.
@@ -63,19 +54,6 @@ The Vite dev server proxies `/api` requests to the Flask backend automatically.
 ./test_backend.sh    # runs pytest
 ./test_frontend.sh   # runs tsc + vitest
 ```
-
-Or manually:
-
-```bash
-cd backend && uv run pytest
-cd frontend && npm test
-```
-
-## Tech Stack
-
-- **Backend:** Flask, python-frontmatter
-- **Frontend:** React 19, TypeScript, Vite
-- **Testing:** pytest (backend), Vitest + Testing Library (frontend)
 
 ## How It Works
 
