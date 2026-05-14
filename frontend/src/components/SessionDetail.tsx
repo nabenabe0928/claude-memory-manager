@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { DeleteConfirmDialog } from "./DeleteConfirmDialog";
 import { CopyPathButton } from "./CopyPathButton";
 import { RefreshButton } from "./RefreshButton";
@@ -51,6 +53,16 @@ export function SessionDetail({ session, projectId, onBack, onDelete, onDuplicat
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [copiedResume, setCopiedResume] = useState(false);
   const [confirmDeleteLine, setConfirmDeleteLine] = useState<number | null>(null);
+  const [mdRendered, setMdRendered] = useState<Set<number>>(new Set());
+
+  const toggleMarkdown = (index: number) => {
+    setMdRendered((prev) => {
+      const next = new Set(prev);
+      if (next.has(index)) next.delete(index);
+      else next.add(index);
+      return next;
+    });
+  };
 
   const resumeCommand = `claude --resume ${session.id}`;
 
@@ -152,6 +164,12 @@ export function SessionDetail({ session, projectId, onBack, onDelete, onDuplicat
                   <span className="message-role">{m.role}</span>
                   <div className="message-actions">
                     <button
+                      className={`msg-action-btn md-btn${mdRendered.has(i) ? " md-btn-active" : ""}`}
+                      onClick={() => toggleMarkdown(i)}
+                    >
+                      MD
+                    </button>
+                    <button
                       className="msg-action-btn copy-btn"
                       onClick={() => handleCopy(textForCopy, i)}
                     >
@@ -168,9 +186,17 @@ export function SessionDetail({ session, projectId, onBack, onDelete, onDuplicat
                 <div className="message-body">
                   {m.parts.map((p, j) =>
                     p.type === "text" ? (
-                      <pre key={j} className="message-text">
-                        {p.text}
-                      </pre>
+                      mdRendered.has(i) ? (
+                        <div key={j} className="markdown-body">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {p.text ?? ""}
+                          </ReactMarkdown>
+                        </div>
+                      ) : (
+                        <pre key={j} className="message-text">
+                          {p.text}
+                        </pre>
+                      )
                     ) : p.type === "image" ? (
                       <span key={j} className="message-label">
                         {p.label}
