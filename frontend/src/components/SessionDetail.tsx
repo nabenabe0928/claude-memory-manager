@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { DeleteConfirmDialog } from "./DeleteConfirmDialog";
@@ -48,17 +48,17 @@ function CollapsiblePart({ part }: { part: MessagePart }) {
   );
 }
 
-function MessagePartView({ part, isMdRendered }: { part: MessagePart; isMdRendered: boolean }) {
+const MessagePartView = memo(function MessagePartView({ part, isMdRendered }: { part: MessagePart; isMdRendered: boolean }) {
+  if (part.type === "text" && isMdRendered) {
+    return (
+      <div className="markdown-body">
+        <ReactMarkdown remarkPlugins={REMARK_PLUGINS}>
+          {part.text ?? ""}
+        </ReactMarkdown>
+      </div>
+    );
+  }
   if (part.type === "text") {
-    if (isMdRendered) {
-      return (
-        <div className="markdown-body">
-          <ReactMarkdown remarkPlugins={REMARK_PLUGINS}>
-            {part.text ?? ""}
-          </ReactMarkdown>
-        </div>
-      );
-    }
     return (
       <pre className="message-text">
         {part.text ?? ""}
@@ -69,7 +69,7 @@ function MessagePartView({ part, isMdRendered }: { part: MessagePart; isMdRender
     return <span className="message-label">{part.label}</span>;
   }
   return <CollapsiblePart part={part} />;
-}
+});
 
 function getTextForCopy(m: Message) {
   return m.parts
