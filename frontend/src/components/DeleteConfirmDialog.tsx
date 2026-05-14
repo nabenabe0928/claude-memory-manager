@@ -1,20 +1,31 @@
 import "./DeleteConfirmDialog.css";
 
 interface Props {
-  memoryName: string;
+  itemName: string;
+  title?: string;
+  description?: string;
   onConfirm: () => void;
   onCancel: () => void;
 }
 
-export function DeleteConfirmDialog({ memoryName, onConfirm, onCancel }: Props) {
+export function DeleteConfirmDialog({
+  itemName,
+  title = "Confirm Delete",
+  description,
+  onConfirm,
+  onCancel,
+}: Props) {
   return (
     <div className="dialog-overlay" onClick={onCancel}>
       <div className="dialog" onClick={(e) => e.stopPropagation()}>
-        <h3>Delete Memory</h3>
+        <h3>{title}</h3>
         <p>
-          Are you sure you want to delete <strong>{memoryName}</strong>? This
-          will also remove its entry from MEMORY.md. This action cannot be
-          undone.
+          {description ?? (
+            <>
+              Are you sure you want to delete <strong>{itemName}</strong>? This
+              action cannot be undone.
+            </>
+          )}
         </p>
         <div className="dialog-actions">
           <button className="cancel-btn" onClick={onCancel}>

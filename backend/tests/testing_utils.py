@@ -1,6 +1,5 @@
 """Shared test utilities for backend tests."""
 import json
-from pathlib import Path
 
 
 def create_project(projects_dir, dirname, memories=None, sessions=None):

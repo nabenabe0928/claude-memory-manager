@@ -1,13 +1,14 @@
-import json
-import os
-import re
-import shutil
 from datetime import datetime
+import json
 from pathlib import Path
+import shutil
 
-import frontmatter
-from flask import Flask, jsonify, abort
+from flask import abort
+from flask import Flask
+from flask import jsonify
 from flask_cors import CORS
+import frontmatter
+
 
 app = Flask(__name__)
 CORS(app)
@@ -99,6 +100,16 @@ def _resolve_project_memory_dir(project_id: str) -> Path:
     return memory_dir
 
 
+def _resolve_session_file(project_id: str, session_id: str) -> Path:
+    project_dir = _resolve_project_dir(project_id)
+    if "/" in session_id or ".." in session_id:
+        abort(400, "Invalid session ID")
+    jsonl_file = project_dir / f"{session_id}.jsonl"
+    if not jsonl_file.is_file():
+        abort(404, "Session not found")
+    return jsonl_file
+
+
 @app.route("/api/projects")
 def list_projects():
     return jsonify(_get_projects())
@@ -166,16 +177,11 @@ def list_sessions(project_id: str):
 
 @app.route("/api/projects/<project_id>/sessions/<session_id>")
 def get_session(project_id: str, session_id: str):
-    project_dir = _resolve_project_dir(project_id)
-    if "/" in session_id or ".." in session_id:
-        abort(400, "Invalid session ID")
-    jsonl_file = project_dir / f"{session_id}.jsonl"
-    if not jsonl_file.is_file():
-        abort(404, "Session not found")
+    jsonl_file = _resolve_session_file(project_id, session_id)
 
     messages = []
     with open(jsonl_file) as fh:
-        for line in fh:
+        for line_index, line in enumerate(fh):
             try:
                 msg = json.loads(line)
             except json.JSONDecodeError:
@@ -191,6 +197,7 @@ def get_session(project_id: str, session_id: str):
                 if content.strip():
                     messages.append({
                         "role": msg_type,
+                        "lineIndex": line_index,
                         "parts": [{"type": "text", "text": content}],
                     })
             elif isinstance(content, list):
@@ -226,20 +233,30 @@ def get_session(project_id: str, session_id: str):
                             "detail": detail,
                         })
                 if parts:
-                    messages.append({"role": msg_type, "parts": parts})
+                    messages.append({"role": msg_type, "lineIndex": line_index, "parts": parts})
     return jsonify(messages)
+
+
+@app.route("/api/projects/<project_id>/sessions/<session_id>/messages/<int:line_index>", methods=["DELETE"])
+def delete_session_message(project_id: str, session_id: str, line_index: int):
+    jsonl_file = _resolve_session_file(project_id, session_id)
+
+    with open(jsonl_file) as fh:
+        lines = fh.readlines()
+    if line_index < 0 or line_index >= len(lines):
+        abort(404, "Message not found")
+
+    del lines[line_index]
+    with open(jsonl_file, "w") as fh:
+        fh.writelines(lines)
+
+    return jsonify({"deleted": line_index})
 
 
 @app.route("/api/projects/<project_id>/sessions/<session_id>", methods=["DELETE"])
 def delete_session(project_id: str, session_id: str):
-    project_dir = _resolve_project_dir(project_id)
-    if "/" in session_id or ".." in session_id:
-        abort(400, "Invalid session ID")
-
-    jsonl_file = project_dir / f"{session_id}.jsonl"
-    companion_dir = project_dir / session_id
-    if not jsonl_file.is_file():
-        abort(404, "Session not found")
+    jsonl_file = _resolve_session_file(project_id, session_id)
+    companion_dir = jsonl_file.parent / session_id
 
     jsonl_file.unlink()
     if companion_dir.is_dir():

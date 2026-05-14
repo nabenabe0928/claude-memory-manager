@@ -37,7 +37,9 @@ export function MemoryDetail({ memory, onDelete, onBack }: Props) {
       <pre className="detail-content">{memory.content}</pre>
       {showConfirm && (
         <DeleteConfirmDialog
-          memoryName={memory.name}
+          itemName={memory.name}
+          title="Delete Memory"
+          description={`Are you sure you want to delete "${memory.name}"? This will also remove its entry from MEMORY.md. This action cannot be undone.`}
           onConfirm={() => {
             onDelete(memory.filename);
             setShowConfirm(false);

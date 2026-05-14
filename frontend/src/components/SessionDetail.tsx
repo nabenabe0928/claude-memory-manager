@@ -13,6 +13,7 @@ interface MessagePart {
 
 interface Message {
   role: string;
+  lineIndex: number;
   parts: MessagePart[];
 }
 
@@ -47,6 +48,7 @@ export function SessionDetail({ session, projectId, onBack, onDelete }: Props) {
   const [showConfirm, setShowConfirm] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [copiedResume, setCopiedResume] = useState(false);
+  const [confirmDeleteLine, setConfirmDeleteLine] = useState<number | null>(null);
 
   const resumeCommand = `claude --resume ${session.id}`;
 
@@ -62,6 +64,21 @@ export function SessionDetail({ session, projectId, onBack, onDelete }: Props) {
       setCopiedIndex(index);
       setTimeout(() => setCopiedIndex(null), 1500);
     });
+  };
+
+  const handleDeleteMessage = (lineIndex: number) => {
+    fetch(`/api/projects/${projectId}/sessions/${session.id}/messages/${lineIndex}`, {
+      method: "DELETE",
+    })
+      .then((r) => {
+        if (!r.ok) return;
+        setConfirmDeleteLine(null);
+        return fetch(`/api/projects/${projectId}/sessions/${session.id}`);
+      })
+      .then((r) => r?.json())
+      .then((data) => {
+        if (data) setMessages(data);
+      });
   };
 
   useEffect(() => {
@@ -118,12 +135,20 @@ export function SessionDetail({ session, projectId, onBack, onDelete }: Props) {
               <div key={i} className={`message message-${m.role}`}>
                 <div className="message-top">
                   <span className="message-role">{m.role}</span>
-                  <button
-                    className="copy-btn"
-                    onClick={() => handleCopy(textForCopy, i)}
-                  >
-                    {copiedIndex === i ? "Copied!" : "Copy"}
-                  </button>
+                  <div className="message-actions">
+                    <button
+                      className="msg-action-btn copy-btn"
+                      onClick={() => handleCopy(textForCopy, i)}
+                    >
+                      {copiedIndex === i ? "Copied!" : "Copy"}
+                    </button>
+                    <button
+                      className="msg-action-btn msg-delete-btn"
+                      onClick={() => setConfirmDeleteLine(m.lineIndex)}
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
                 <div className="message-body">
                   {m.parts.map((p, j) =>
@@ -145,9 +170,18 @@ export function SessionDetail({ session, projectId, onBack, onDelete }: Props) {
           })}
         </div>
       )}
+      {confirmDeleteLine !== null && (
+        <DeleteConfirmDialog
+          itemName="this message"
+          onConfirm={() => handleDeleteMessage(confirmDeleteLine)}
+          onCancel={() => setConfirmDeleteLine(null)}
+        />
+      )}
       {showConfirm && (
         <DeleteConfirmDialog
-          memoryName={`session ${session.id.slice(0, 8)}...`}
+          itemName={`session ${session.id.slice(0, 8)}...`}
+          title="Delete Session"
+          description={`Are you sure you want to delete session ${session.id.slice(0, 8)}...? This action cannot be undone.`}
           onConfirm={() => {
             onDelete(session.id);
             setShowConfirm(false);

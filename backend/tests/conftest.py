@@ -1,8 +1,9 @@
 """Shared fixtures for backend tests."""
-import sys
 from pathlib import Path
+import sys
 
 import pytest
+
 
 _backend_dir = str(Path(__file__).resolve().parent.parent)
 _tests_dir = str(Path(__file__).resolve().parent)

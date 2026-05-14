@@ -472,3 +472,68 @@ class TestDeleteSessionEndpoint:
     def test_returns_404_for_nonexistent_project(self, client, projects_dir):
         resp = client.delete("/api/projects/ghost/sessions/s1")
         assert resp.status_code == 404
+
+
+class TestDeleteSessionMessageEndpoint:
+
+    def test_deletes_message_at_given_line_index(self, client, projects_dir):
+        create_project(projects_dir, "proj", sessions={
+            "sess": [
+                {"type": "user", "message": {"content": "first"}},
+                {"type": "user", "message": {"content": "second"}},
+                {"type": "user", "message": {"content": "third"}},
+            ],
+        })
+        client.delete("/api/projects/proj/sessions/sess/messages/1")
+        jsonl = projects_dir / "proj" / "sess.jsonl"
+        lines = jsonl.read_text().splitlines()
+        assert len(lines) == 2
+        assert json.loads(lines[0])["message"]["content"] == "first"
+        assert json.loads(lines[1])["message"]["content"] == "third"
+
+    def test_returns_deleted_line_index(self, client, projects_dir):
+        create_project(projects_dir, "proj", sessions={
+            "sess": [
+                {"type": "user", "message": {"content": "first"}},
+                {"type": "user", "message": {"content": "second"}},
+                {"type": "user", "message": {"content": "third"}},
+            ],
+        })
+        resp = client.delete("/api/projects/proj/sessions/sess/messages/1")
+        assert resp.status_code == 200
+        assert resp.get_json() == {"deleted": 1}
+
+    def test_returns_404_for_out_of_range_line_index(self, client, projects_dir):
+        create_project(projects_dir, "proj", sessions={
+            "sess": [
+                {"type": "user", "message": {"content": "only"}},
+            ],
+        })
+        resp = client.delete("/api/projects/proj/sessions/sess/messages/5")
+        assert resp.status_code == 404
+
+    def test_returns_404_for_nonexistent_session(self, client, projects_dir):
+        (projects_dir / "proj").mkdir()
+        resp = client.delete("/api/projects/proj/sessions/missing/messages/0")
+        assert resp.status_code == 404
+
+    def test_returns_404_for_nonexistent_project(self, client, projects_dir):
+        resp = client.delete(
+            "/api/projects/ghost/sessions/sess/messages/0"
+        )
+        assert resp.status_code == 404
+
+    def test_preserves_other_lines_after_deletion(self, client, projects_dir):
+        create_project(projects_dir, "proj", sessions={
+            "sess": [
+                {"type": "user", "message": {"content": "alpha"}},
+                {"type": "user", "message": {"content": "beta"}},
+                {"type": "user", "message": {"content": "gamma"}},
+            ],
+        })
+        client.delete("/api/projects/proj/sessions/sess/messages/0")
+        jsonl = projects_dir / "proj" / "sess.jsonl"
+        lines = jsonl.read_text().splitlines()
+        assert len(lines) == 2
+        assert json.loads(lines[0])["message"]["content"] == "beta"
+        assert json.loads(lines[1])["message"]["content"] == "gamma"

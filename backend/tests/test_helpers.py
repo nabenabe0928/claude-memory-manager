@@ -3,18 +3,18 @@ import json
 from pathlib import Path
 
 import pytest
-from werkzeug.exceptions import BadRequest, NotFound
+from testing_utils import create_project
+from werkzeug.exceptions import BadRequest
+from werkzeug.exceptions import NotFound
 
 import app as app_module
-from app import (
-    _extract_session_summary,
-    _get_project_display_name,
-    _get_projects,
-    _parse_memory_file,
-    _resolve_project_dir,
-    _resolve_project_memory_dir,
-)
-from testing_utils import create_project
+from app import _extract_session_summary
+from app import _get_project_display_name
+from app import _get_projects
+from app import _parse_memory_file
+from app import _resolve_project_dir
+from app import _resolve_project_memory_dir
+
 
 _ENCODED_HOME = str(Path.home()).strip("/").replace("/", "-").replace(".", "-")
 

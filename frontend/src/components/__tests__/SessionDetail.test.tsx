@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { SessionDetail } from "../SessionDetail";
@@ -17,10 +17,12 @@ function mockFetchWith(data: unknown) {
 const defaultMessages = [
   {
     role: "user",
+    lineIndex: 0,
     parts: [{ type: "text" as const, text: "Hello there" }],
   },
   {
     role: "assistant",
+    lineIndex: 1,
     parts: [{ type: "text" as const, text: "Hi! How can I help?" }],
   },
 ];
@@ -167,6 +169,97 @@ describe("SessionDetail", () => {
 
       await user.click(screen.getByRole("button", { name: /copy resume/i }));
       expect(screen.getByText("Copied!")).toBeInTheDocument();
+    });
+  });
+
+  describe("message delete flow", () => {
+    it("shows delete button on each message", async () => {
+      mockFetchWith(defaultMessages);
+      renderDetail();
+
+      await waitFor(() => {
+        expect(screen.getByText("Hello there")).toBeInTheDocument();
+      });
+
+      const messageBubbles = document.querySelectorAll(".message-actions");
+      expect(messageBubbles).toHaveLength(2);
+      messageBubbles.forEach((actions) => {
+        expect(within(actions as HTMLElement).getByRole("button", { name: "Delete" })).toBeInTheDocument();
+      });
+    });
+
+    it("shows confirmation dialog when message delete is clicked", async () => {
+      mockFetchWith(defaultMessages);
+      const user = userEvent.setup();
+      renderDetail();
+
+      await waitFor(() => {
+        expect(screen.getByText("Hello there")).toBeInTheDocument();
+      });
+
+      const firstMessageActions = document.querySelectorAll(".message-actions")[0] as HTMLElement;
+      await user.click(within(firstMessageActions).getByRole("button", { name: "Delete" }));
+
+      expect(screen.getByText(/are you sure/i)).toBeInTheDocument();
+    });
+
+    it("calls delete API and re-fetches messages on confirm", async () => {
+      const fetchSpy = mockFetchWith(defaultMessages);
+      const user = userEvent.setup();
+      renderDetail({ projectId: "proj-1", session: makeSession({ id: "sess-1" }) });
+
+      await waitFor(() => {
+        expect(screen.getByText("Hello there")).toBeInTheDocument();
+      });
+
+      const remainingMessages = [defaultMessages[1]];
+      fetchSpy
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({ success: true }),
+        } as Response)
+        .mockResolvedValueOnce({
+          json: () => Promise.resolve(remainingMessages),
+        } as Response);
+
+      const firstMessageActions = document.querySelectorAll(".message-actions")[0] as HTMLElement;
+      await user.click(within(firstMessageActions).getByRole("button", { name: "Delete" }));
+
+      const dialog = document.querySelector(".dialog") as HTMLElement;
+      await user.click(within(dialog).getByRole("button", { name: "Delete" }));
+
+      await waitFor(() => {
+        expect(screen.queryByText("Hello there")).not.toBeInTheDocument();
+      });
+      expect(fetchSpy).toHaveBeenCalledWith(
+        "/api/projects/proj-1/sessions/sess-1/messages/0",
+        { method: "DELETE" },
+      );
+      expect(fetchSpy).toHaveBeenCalledWith(
+        "/api/projects/proj-1/sessions/sess-1",
+      );
+      expect(screen.getByText("Hi! How can I help?")).toBeInTheDocument();
+    });
+
+    it("dismisses dialog on cancel without deleting", async () => {
+      mockFetchWith(defaultMessages);
+      const user = userEvent.setup();
+      renderDetail();
+
+      await waitFor(() => {
+        expect(screen.getByText("Hello there")).toBeInTheDocument();
+      });
+
+      const firstMessageActions = document.querySelectorAll(".message-actions")[0] as HTMLElement;
+      await user.click(within(firstMessageActions).getByRole("button", { name: "Delete" }));
+
+      expect(screen.getByText(/are you sure/i)).toBeInTheDocument();
+
+      await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+      expect(screen.queryByText(/are you sure/i)).not.toBeInTheDocument();
+      expect(screen.getByText("Hello there")).toBeInTheDocument();
+      expect(screen.getByText("Hi! How can I help?")).toBeInTheDocument();
     });
   });
 });

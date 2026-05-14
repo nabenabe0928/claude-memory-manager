@@ -57,7 +57,9 @@ export function SessionList({ sessions, projectName, onBack, onSelect, onDelete 
       </ul>
       {confirmId && (
         <DeleteConfirmDialog
-          memoryName={`session ${confirmId.slice(0, 8)}...`}
+          itemName={`session ${confirmId.slice(0, 8)}...`}
+          title="Delete Session"
+          description={`Are you sure you want to delete session ${confirmId.slice(0, 8)}...? This action cannot be undone.`}
           onConfirm={() => {
             onDelete(confirmId);
             setConfirmId(null);
