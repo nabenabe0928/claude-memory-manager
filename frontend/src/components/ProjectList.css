@@ -32,7 +32,6 @@
   background-color: #f0f0f0;
 }
 
-
 .project-name {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -40,16 +39,29 @@
   flex: 1;
 }
 
-.memory-count {
-  background: #e0e0e0;
-  border-radius: 10px;
-  padding: 2px 8px;
-  font-size: 11px;
-  font-weight: 600;
+.project-counts {
+  display: flex;
+  gap: 6px;
   margin-left: 8px;
   flex-shrink: 0;
 }
 
+.count-badge {
+  border-radius: 10px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.memory-badge {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.session-badge {
+  background: #e0e0e0;
+  color: #555;
+}
 
 .empty {
   color: #999;

@@ -10,12 +10,17 @@ export function ProjectList({ projects, onSelect }: Props) {
   return (
     <div className="project-list">
       <h2>Projects</h2>
-      {projects.length === 0 && <p className="empty">No projects with memory found.</p>}
+      {projects.length === 0 && <p className="empty">No projects found.</p>}
       <ul>
         {projects.map((p) => (
           <li key={p.id} onClick={() => onSelect(p.id)}>
             <span className="project-name">{p.displayName}</span>
-            <span className="memory-count">{p.memoryCount}</span>
+            <div className="project-counts">
+              {p.memoryCount > 0 && (
+                <span className="count-badge memory-badge">{p.memoryCount} memories</span>
+              )}
+              <span className="count-badge session-badge">{p.sessionCount} sessions</span>
+            </div>
           </li>
         ))}
       </ul>

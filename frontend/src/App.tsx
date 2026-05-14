@@ -1,17 +1,22 @@
 import { useEffect, useState } from "react";
 import { ProjectList } from "./components/ProjectList";
+import { CategoryPicker } from "./components/CategoryPicker";
 import { MemoryList } from "./components/MemoryList";
 import { MemoryDetail } from "./components/MemoryDetail";
-import type { Project, Memory } from "./types";
+import { SessionList } from "./components/SessionList";
+import { SessionDetail } from "./components/SessionDetail";
+import type { Project, Memory, Session } from "./types";
 import "./App.css";
 
-type View = "projects" | "memories" | "detail";
+type View = "projects" | "category" | "memories" | "detail" | "sessions" | "sessionDetail";
 
 function App() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [memories, setMemories] = useState<Memory[]>([]);
+  const [sessions, setSessions] = useState<Session[]>([]);
   const [selectedMemory, setSelectedMemory] = useState<Memory | null>(null);
+  const [selectedSession, setSelectedSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<View>("projects");
 
@@ -24,14 +29,31 @@ function App() {
       });
   }, []);
 
+  const selectedProject = projects.find((p) => p.id === selectedProjectId);
+
   const handleSelectProject = (id: string) => {
     setSelectedProjectId(id);
     setSelectedMemory(null);
-    fetch(`/api/projects/${id}/memories`)
+    setView("category");
+  };
+
+  const handleSelectMemories = () => {
+    if (!selectedProjectId) return;
+    fetch(`/api/projects/${selectedProjectId}/memories`)
       .then((r) => r.json())
       .then((data) => {
         setMemories(data);
         setView("memories");
+      });
+  };
+
+  const handleSelectSessions = () => {
+    if (!selectedProjectId) return;
+    fetch(`/api/projects/${selectedProjectId}/sessions`)
+      .then((r) => r.json())
+      .then((data) => {
+        setSessions(data);
+        setView("sessions");
       });
   };
 
@@ -43,8 +65,22 @@ function App() {
   const handleBackToProjects = () => {
     setSelectedProjectId(null);
     setMemories([]);
+    setSessions([]);
     setSelectedMemory(null);
     setView("projects");
+  };
+
+  const handleSelectSession = (session: Session) => {
+    setSelectedSession(session);
+    setView("sessionDetail");
+  };
+
+  const handleBackToCategory = () => {
+    setMemories([]);
+    setSessions([]);
+    setSelectedMemory(null);
+    setSelectedSession(null);
+    setView("category");
   };
 
   const handleBackToMemories = () => {
@@ -52,7 +88,12 @@ function App() {
     setView("memories");
   };
 
-  const handleDelete = (filename: string) => {
+  const handleBackToSessions = () => {
+    setSelectedSession(null);
+    setView("sessions");
+  };
+
+  const handleDeleteMemory = (filename: string) => {
     if (!selectedProjectId) return;
     fetch(`/api/projects/${selectedProjectId}/memories/${filename}`, {
       method: "DELETE",
@@ -63,20 +104,35 @@ function App() {
         setMemories(updated);
         setSelectedMemory(null);
         setProjects((prev) =>
-          prev
-            .map((p) =>
-              p.id === selectedProjectId
-                ? { ...p, memoryCount: p.memoryCount - 1 }
-                : p
-            )
-            .filter((p) => p.memoryCount > 0)
+          prev.map((p) =>
+            p.id === selectedProjectId
+              ? { ...p, memoryCount: p.memoryCount - 1 }
+              : p
+          )
         );
         if (updated.length > 0) {
           setView("memories");
         } else {
-          setSelectedProjectId(null);
-          setView("projects");
+          setView("category");
         }
+      });
+  };
+
+  const handleDeleteSession = (sessionId: string) => {
+    if (!selectedProjectId) return;
+    fetch(`/api/projects/${selectedProjectId}/sessions/${sessionId}`, {
+      method: "DELETE",
+    })
+      .then((r) => r.json())
+      .then(() => {
+        setSessions((prev) => prev.filter((s) => s.id !== sessionId));
+        setProjects((prev) =>
+          prev.map((p) =>
+            p.id === selectedProjectId
+              ? { ...p, sessionCount: p.sessionCount - 1 }
+              : p
+          )
+        );
       });
   };
 
@@ -93,21 +149,49 @@ function App() {
         {view === "projects" && (
           <ProjectList projects={projects} onSelect={handleSelectProject} />
         )}
+        {view === "category" && selectedProject && (
+          <CategoryPicker
+            projectName={selectedProject.displayName}
+            memoryCount={selectedProject.memoryCount}
+            sessionCount={selectedProject.sessionCount}
+            onSelectMemories={handleSelectMemories}
+            onSelectSessions={handleSelectSessions}
+            onBack={handleBackToProjects}
+          />
+        )}
         {view === "memories" && (
           <MemoryList
             memories={memories}
-            projectName={
-              projects.find((p) => p.id === selectedProjectId)?.displayName ?? ""
-            }
+            projectName={selectedProject?.displayName ?? ""}
             onSelect={handleSelectMemory}
-            onBack={handleBackToProjects}
+            onBack={handleBackToCategory}
           />
         )}
         {view === "detail" && selectedMemory && (
           <MemoryDetail
             memory={selectedMemory}
-            onDelete={handleDelete}
+            onDelete={handleDeleteMemory}
             onBack={handleBackToMemories}
+          />
+        )}
+        {view === "sessions" && (
+          <SessionList
+            sessions={sessions}
+            projectName={selectedProject?.displayName ?? ""}
+            onBack={handleBackToCategory}
+            onSelect={handleSelectSession}
+            onDelete={handleDeleteSession}
+          />
+        )}
+        {view === "sessionDetail" && selectedSession && selectedProjectId && (
+          <SessionDetail
+            session={selectedSession}
+            projectId={selectedProjectId}
+            onBack={handleBackToSessions}
+            onDelete={(id) => {
+              handleDeleteSession(id);
+              handleBackToSessions();
+            }}
           />
         )}
       </div>

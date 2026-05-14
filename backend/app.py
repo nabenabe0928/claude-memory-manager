@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import shutil
 from datetime import datetime
 from pathlib import Path
 
@@ -22,20 +23,24 @@ def _get_project_display_name(dirname: str) -> str:
     return dirname.lstrip("-")
 
 
-def _get_projects_with_memory() -> list[dict]:
+def _get_projects() -> list[dict]:
     projects = []
     if not CLAUDE_PROJECTS_DIR.is_dir():
         return projects
     for entry in sorted(CLAUDE_PROJECTS_DIR.iterdir()):
+        if not entry.is_dir():
+            continue
         memory_dir = entry / "memory"
-        if entry.is_dir() and memory_dir.is_dir():
-            md_files = [f for f in memory_dir.iterdir() if f.suffix == ".md" and f.name != "MEMORY.md"]
-            if md_files:
-                projects.append({
-                    "id": entry.name,
-                    "displayName": _get_project_display_name(entry.name),
-                    "memoryCount": len(md_files),
-                })
+        memory_count = 0
+        if memory_dir.is_dir():
+            memory_count = len([f for f in memory_dir.iterdir() if f.suffix == ".md" and f.name != "MEMORY.md"])
+        session_count = len([f for f in entry.iterdir() if f.suffix == ".jsonl"])
+        projects.append({
+            "id": entry.name,
+            "displayName": _get_project_display_name(entry.name),
+            "memoryCount": memory_count,
+            "sessionCount": session_count,
+        })
     return projects
 
 
@@ -54,10 +59,37 @@ def _parse_memory_file(filepath: Path) -> dict:
     }
 
 
-def _resolve_project_memory_dir(project_id: str) -> Path:
+def _extract_session_summary(filepath: Path) -> str:
+    try:
+        with open(filepath) as fh:
+            for line in fh:
+                msg = json.loads(line)
+                if msg.get("type") != "user" or "message" not in msg:
+                    continue
+                content = msg["message"].get("content", "")
+                if isinstance(content, str) and not content.startswith("<"):
+                    return content[:200]
+                if isinstance(content, list):
+                    for part in content:
+                        if isinstance(part, dict) and part.get("type") == "text" and not part["text"].startswith("<"):
+                            return part["text"][:200]
+    except Exception:
+        pass
+    return "(no preview available)"
+
+
+def _resolve_project_dir(project_id: str) -> Path:
     if "/" in project_id or ".." in project_id:
         abort(400, "Invalid project ID")
-    memory_dir = CLAUDE_PROJECTS_DIR / project_id / "memory"
+    project_dir = CLAUDE_PROJECTS_DIR / project_id
+    if not project_dir.is_dir():
+        abort(404, "Project not found")
+    return project_dir
+
+
+def _resolve_project_memory_dir(project_id: str) -> Path:
+    project_dir = _resolve_project_dir(project_id)
+    memory_dir = project_dir / "memory"
     if not memory_dir.is_dir():
         abort(404, "Project memory directory not found")
     return memory_dir
@@ -65,7 +97,7 @@ def _resolve_project_memory_dir(project_id: str) -> Path:
 
 @app.route("/api/projects")
 def list_projects():
-    return jsonify(_get_projects_with_memory())
+    return jsonify(_get_projects())
 
 
 @app.route("/api/projects/<project_id>/memories")
@@ -87,24 +119,6 @@ def list_memories(project_id: str):
     return jsonify(memories)
 
 
-@app.route("/api/projects/<project_id>/memories/<filename>")
-def get_memory(project_id: str, filename: str):
-    memory_dir = _resolve_project_memory_dir(project_id)
-    filepath = memory_dir / filename
-    if not filepath.is_file() or filepath.suffix != ".md":
-        abort(404, "Memory file not found")
-    try:
-        return jsonify(_parse_memory_file(filepath))
-    except Exception:
-        return jsonify({
-            "filename": filepath.name,
-            "name": filepath.stem,
-            "description": "(failed to parse)",
-            "type": "unknown",
-            "content": filepath.read_text(),
-        })
-
-
 @app.route("/api/projects/<project_id>/memories/<filename>", methods=["DELETE"])
 def delete_memory(project_id: str, filename: str):
     memory_dir = _resolve_project_memory_dir(project_id)
@@ -121,6 +135,87 @@ def delete_memory(project_id: str, filename: str):
         memory_index.write_text("\n".join(updated) + "\n" if updated else "")
 
     return jsonify({"deleted": filename})
+
+
+@app.route("/api/projects/<project_id>/sessions")
+def list_sessions(project_id: str):
+    project_dir = _resolve_project_dir(project_id)
+    sessions = []
+    for f in sorted(project_dir.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True):
+        if f.suffix != ".jsonl":
+            continue
+        stat = f.stat()
+        session_id = f.stem
+        companion_dir = project_dir / session_id
+        sessions.append({
+            "id": session_id,
+            "filename": f.name,
+            "summary": _extract_session_summary(f),
+            "modifiedAt": datetime.fromtimestamp(stat.st_mtime).isoformat(),
+            "sizeBytes": stat.st_size,
+            "hasCompanionDir": companion_dir.is_dir(),
+        })
+    return jsonify(sessions)
+
+
+@app.route("/api/projects/<project_id>/sessions/<session_id>")
+def get_session(project_id: str, session_id: str):
+    project_dir = _resolve_project_dir(project_id)
+    if "/" in session_id or ".." in session_id:
+        abort(400, "Invalid session ID")
+    jsonl_file = project_dir / f"{session_id}.jsonl"
+    if not jsonl_file.is_file():
+        abort(404, "Session not found")
+
+    messages = []
+    with open(jsonl_file) as fh:
+        for line in fh:
+            try:
+                msg = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            msg_type = msg.get("type")
+            if msg_type not in ("user", "assistant"):
+                continue
+            message = msg.get("message", {})
+            content = message.get("content", "")
+            text = ""
+            if isinstance(content, str):
+                if content.lstrip().startswith("<"):
+                    continue
+                text = content
+            elif isinstance(content, list):
+                parts = []
+                for part in content:
+                    if isinstance(part, dict) and part.get("type") == "text":
+                        parts.append(part["text"])
+                    elif isinstance(part, dict) and part.get("type") == "tool_use":
+                        parts.append(f"[Tool: {part.get('name', '?')}]")
+                    elif isinstance(part, dict) and part.get("type") == "tool_result":
+                        parts.append("[Tool result]")
+                text = "\n".join(parts)
+            if not text.strip():
+                continue
+            messages.append({"role": msg_type, "text": text})
+    return jsonify(messages)
+
+
+@app.route("/api/projects/<project_id>/sessions/<session_id>", methods=["DELETE"])
+def delete_session(project_id: str, session_id: str):
+    project_dir = _resolve_project_dir(project_id)
+    if "/" in session_id or ".." in session_id:
+        abort(400, "Invalid session ID")
+
+    jsonl_file = project_dir / f"{session_id}.jsonl"
+    companion_dir = project_dir / session_id
+    if not jsonl_file.is_file():
+        abort(404, "Session not found")
+
+    jsonl_file.unlink()
+    if companion_dir.is_dir():
+        shutil.rmtree(companion_dir)
+
+    return jsonify({"deleted": session_id})
 
 
 if __name__ == "__main__":
