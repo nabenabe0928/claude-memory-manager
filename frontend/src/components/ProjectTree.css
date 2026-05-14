@@ -1,0 +1,128 @@
+.project-tree {
+  padding: 24px;
+  max-width: 600px;
+}
+
+.project-tree h2 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #666;
+}
+
+.project-tree ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.tree-row {
+  display: flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  transition: background-color 0.15s;
+}
+
+.tree-row-project:hover {
+  background-color: #f0f0f0;
+}
+
+.tree-toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 10px;
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #999;
+  padding: 0;
+  border-radius: 3px;
+}
+
+.tree-toggle:hover {
+  background-color: #e0e0e0;
+  color: #333;
+}
+
+.tree-toggle-spacer {
+  display: inline-block;
+  width: 20px;
+  flex-shrink: 0;
+}
+
+.tree-node-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+
+.tree-clickable {
+  cursor: pointer;
+  color: #1565c0;
+}
+
+.tree-clickable:hover {
+  text-decoration: underline;
+}
+
+.tree-dir-clickable {
+  cursor: pointer;
+  color: #666;
+}
+
+.tree-dir-clickable:hover {
+  color: #333;
+}
+
+.tree-dir {
+  color: #666;
+}
+
+.tree-self-project {
+  font-style: italic;
+}
+
+.tree-loading {
+  color: #999;
+  font-size: 12px;
+  padding: 4px 24px;
+}
+
+.project-tree .project-counts {
+  display: flex;
+  gap: 6px;
+  margin-left: 8px;
+  flex-shrink: 0;
+}
+
+.project-tree .count-badge {
+  border-radius: 10px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.project-tree .memory-badge {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.project-tree .session-badge {
+  background: #e0e0e0;
+  color: #555;
+}
+
+.project-tree .empty {
+  color: #999;
+  font-size: 13px;
+}

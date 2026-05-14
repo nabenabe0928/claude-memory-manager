@@ -1,4 +1,4 @@
-import type { Project, Memory, Session } from "../types";
+import type { Project, Memory, Session, TreeChild, TreeResponse } from "../types";
 
 export function makeProject(overrides: Partial<Project> = {}): Project {
   return {
@@ -32,6 +32,30 @@ export function makeSession(overrides: Partial<Session> = {}): Session {
     modifiedAt: "2025-01-15T10:30:00Z",
     sizeBytes: 2048,
     hasCompanionDir: false,
+    ...overrides,
+  };
+}
+
+export function makeTreeChild(overrides: Partial<TreeChild> = {}): TreeChild {
+  return {
+    name: "my-project",
+    path: "/home/user/my-project",
+    isProject: true,
+    projectId: "proj-1",
+    projectPath: "/home/user/.claude/projects/-home-user-my-project",
+    memoryCount: 3,
+    sessionCount: 5,
+    hasChildren: false,
+    ...overrides,
+  };
+}
+
+export function makeTreeResponse(overrides: Partial<TreeResponse> = {}): TreeResponse {
+  return {
+    path: "/home/user",
+    displayPath: "~",
+    selfProject: null,
+    children: [],
     ...overrides,
   };
 }

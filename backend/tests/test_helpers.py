@@ -9,6 +9,7 @@ from werkzeug.exceptions import BadRequest
 from werkzeug.exceptions import NotFound
 
 import app as app_module
+from app import _encode_path
 from app import _extract_session_summary
 from app import _get_project_display_name
 from app import _get_projects
@@ -18,6 +19,21 @@ from app import _resolve_project_memory_dir
 
 
 _ENCODED_HOME = str(Path.home()).strip("/").replace("/", "-").replace(".", "-")
+
+
+class TestEncodePath:
+    def test_basic_path_encoding(self):
+        assert _encode_path("/Users/alice/projects") == "-Users-alice-projects"
+
+    def test_dots_are_replaced_with_dashes(self):
+        assert _encode_path("/home/user/.config") == "-home-user--config"
+
+    def test_leading_and_trailing_slashes_are_stripped(self):
+        assert _encode_path("/foo/bar/") == "-foo-bar"
+        assert _encode_path("foo/bar") == "-foo-bar"
+
+    def test_empty_string(self):
+        assert _encode_path("") == "-"
 
 
 class TestGetProjectDisplayName:

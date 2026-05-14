@@ -2,8 +2,19 @@
 
 import json
 import os
+from pathlib import Path
 
+import pytest
 from testing_utils import create_project
+
+
+@pytest.fixture()
+def fake_home(tmp_path, monkeypatch):
+    """Create a fake home directory and patch Path.home() to return it."""
+    home = tmp_path / "home"
+    home.mkdir()
+    monkeypatch.setattr(Path, "home", staticmethod(lambda: home))
+    return home
 
 
 class TestListProjectsEndpoint:
@@ -790,3 +801,175 @@ class TestDeleteSessionMessageEndpoint:
         assert len(lines) == 2
         assert json.loads(lines[0])["message"]["content"] == "beta"
         assert json.loads(lines[1])["message"]["content"] == "gamma"
+
+
+class TestTreeEndpoint:
+    def _make_project(self, projects_dir, real_path, memories=None, sessions=None):
+        """Helper to create a project dir with the correct encoded name."""
+        from app import _encode_path
+
+        encoded = _encode_path(str(real_path))
+        return create_project(projects_dir, encoded, memories=memories, sessions=sessions)
+
+    def test_returns_tree_for_home_directory(self, client, projects_dir, fake_home):
+        child = fake_home / "dev"
+        child.mkdir()
+        self._make_project(
+            projects_dir,
+            child,
+            memories={"a.md": "---\nname: a\n---\n"},
+        )
+        resp = client.get("/api/tree")
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["path"] == str(fake_home)
+        assert data["displayPath"] == "~"
+        assert len(data["children"]) == 1
+        assert data["children"][0]["name"] == "dev"
+
+    def test_returns_empty_children_when_no_projects_exist(self, client, projects_dir, fake_home):
+        (fake_home / "documents").mkdir()
+        (fake_home / "downloads").mkdir()
+        resp = client.get("/api/tree")
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["children"] == []
+
+    def test_identifies_direct_project(self, client, projects_dir, fake_home):
+        child = fake_home / "myproject"
+        child.mkdir()
+        self._make_project(
+            projects_dir,
+            child,
+            memories={"note.md": "---\nname: note\n---\ncontent"},
+            sessions={"s1": [{"type": "user", "message": {"content": "hi"}}]},
+        )
+        resp = client.get("/api/tree")
+        data = resp.get_json()
+        assert len(data["children"]) == 1
+        node = data["children"][0]
+        assert node["isProject"] is True
+        assert node["memoryCount"] == 1
+        assert node["sessionCount"] == 1
+        assert node["projectId"] is not None
+
+    def test_identifies_ancestor_directory(self, client, projects_dir, fake_home):
+        parent = fake_home / "code"
+        parent.mkdir()
+        grandchild = parent / "repo"
+        grandchild.mkdir()
+        self._make_project(
+            projects_dir,
+            grandchild,
+            memories={"a.md": "---\nname: a\n---\n"},
+        )
+        resp = client.get("/api/tree")
+        data = resp.get_json()
+        assert len(data["children"]) == 1
+        node = data["children"][0]
+        assert node["name"] == "code"
+        assert node["isProject"] is False
+        assert node["hasChildren"] is True
+        assert node["memoryCount"] == 0
+        assert node["sessionCount"] == 0
+
+    def test_self_project_when_path_is_a_project(self, client, projects_dir, fake_home):
+        self._make_project(
+            projects_dir,
+            fake_home,
+            memories={"m.md": "---\nname: m\n---\n"},
+            sessions={"s1": [{"type": "user", "message": {"content": "hi"}}]},
+        )
+        resp = client.get("/api/tree")
+        data = resp.get_json()
+        assert data["selfProject"] is not None
+        assert data["selfProject"]["memoryCount"] == 1
+        assert data["selfProject"]["sessionCount"] == 1
+
+    def test_excludes_directories_without_projects(self, client, projects_dir, fake_home):
+        (fake_home / "has_project").mkdir()
+        (fake_home / "no_project").mkdir()
+        self._make_project(
+            projects_dir,
+            fake_home / "has_project",
+            memories={"a.md": "---\nname: a\n---\n"},
+        )
+        resp = client.get("/api/tree")
+        data = resp.get_json()
+        names = [c["name"] for c in data["children"]]
+        assert "has_project" in names
+        assert "no_project" not in names
+
+    def test_excludes_hidden_directories(self, client, projects_dir, fake_home):
+        hidden = fake_home / ".hidden"
+        hidden.mkdir()
+        self._make_project(
+            projects_dir,
+            hidden,
+            memories={"a.md": "---\nname: a\n---\n"},
+        )
+        resp = client.get("/api/tree")
+        data = resp.get_json()
+        names = [c["name"] for c in data["children"]]
+        assert ".hidden" not in names
+
+    def test_rejects_path_outside_home(self, client, projects_dir, fake_home):
+        resp = client.get("/api/tree?path=/etc")
+        assert resp.status_code == 403
+
+    def test_handles_path_query_param(self, client, projects_dir, fake_home):
+        parent = fake_home / "code"
+        parent.mkdir()
+        child = parent / "repo"
+        child.mkdir()
+        self._make_project(
+            projects_dir,
+            child,
+            sessions={"s1": [{"type": "user", "message": {"content": "hi"}}]},
+        )
+        resp = client.get(f"/api/tree?path={parent}")
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["path"] == str(parent)
+        assert data["displayPath"] == "~/code"
+        assert len(data["children"]) == 1
+        assert data["children"][0]["name"] == "repo"
+
+    def test_excludes_files_from_children(self, client, projects_dir, fake_home):
+        (fake_home / "somefile.txt").write_text("content")
+        child = fake_home / "project"
+        child.mkdir()
+        self._make_project(
+            projects_dir,
+            child,
+            memories={"a.md": "---\nname: a\n---\n"},
+        )
+        resp = client.get("/api/tree")
+        data = resp.get_json()
+        names = [c["name"] for c in data["children"]]
+        assert "somefile.txt" not in names
+        assert "project" in names
+
+    def test_node_has_both_project_and_children(self, client, projects_dir, fake_home):
+        parent = fake_home / "workspace"
+        parent.mkdir()
+        child = parent / "subrepo"
+        child.mkdir()
+        self._make_project(
+            projects_dir,
+            parent,
+            memories={"p.md": "---\nname: p\n---\n"},
+        )
+        self._make_project(
+            projects_dir,
+            child,
+            sessions={"s1": [{"type": "user", "message": {"content": "hi"}}]},
+        )
+        resp = client.get("/api/tree")
+        data = resp.get_json()
+        assert len(data["children"]) == 1
+        node = data["children"][0]
+        assert node["name"] == "workspace"
+        assert node["isProject"] is True
+        assert node["hasChildren"] is True
+        assert node["memoryCount"] == 1

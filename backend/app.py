@@ -1,5 +1,6 @@
 from datetime import datetime
 import json
+import os
 from pathlib import Path
 import shutil
 import uuid
@@ -7,6 +8,7 @@ import uuid
 from flask import abort
 from flask import Flask
 from flask import jsonify
+from flask import request
 from flask_cors import CORS
 import frontmatter
 
@@ -17,6 +19,10 @@ CORS(app)
 CLAUDE_PROJECTS_DIR = Path.home() / ".claude" / "projects"
 
 
+def _encode_path(real_path: str) -> str:
+    return "-" + real_path.strip("/").replace("/", "-").replace(".", "-")
+
+
 def _get_project_display_name(dirname: str) -> str:
     home = str(Path.home()).strip("/").replace("/", "-").replace(".", "-")
     prefix = "-" + home + "-"
@@ -25,11 +31,11 @@ def _get_project_display_name(dirname: str) -> str:
     return dirname.lstrip("-")
 
 
-def _get_projects() -> list[dict]:
-    projects = []
+def _get_project_counts() -> dict[str, dict]:
+    result: dict[str, dict] = {}
     if not CLAUDE_PROJECTS_DIR.is_dir():
-        return projects
-    for entry in sorted(CLAUDE_PROJECTS_DIR.iterdir()):
+        return result
+    for entry in CLAUDE_PROJECTS_DIR.iterdir():
         if not entry.is_dir():
             continue
         memory_dir = entry / "memory"
@@ -41,13 +47,26 @@ def _get_projects() -> list[dict]:
         session_count = len([f for f in entry.iterdir() if f.suffix == ".jsonl"])
         if memory_count == 0 and session_count == 0:
             continue
+        result[entry.name] = {
+            "id": entry.name,
+            "memoryCount": memory_count,
+            "sessionCount": session_count,
+        }
+    return result
+
+
+def _get_projects() -> list[dict]:
+    counts = _get_project_counts()
+    projects = []
+    for dirname in sorted(counts):
+        info = counts[dirname]
         projects.append(
             {
-                "id": entry.name,
-                "displayName": _get_project_display_name(entry.name),
-                "path": str(entry),
-                "memoryCount": memory_count,
-                "sessionCount": session_count,
+                "id": dirname,
+                "displayName": _get_project_display_name(dirname),
+                "path": str(CLAUDE_PROJECTS_DIR / dirname),
+                "memoryCount": info["memoryCount"],
+                "sessionCount": info["sessionCount"],
             }
         )
     return projects
@@ -313,6 +332,83 @@ def duplicate_session(project_id: str, session_id: str):
         shutil.copytree(companion_dir, project_dir / new_id)
 
     return jsonify(_build_session_dict(new_jsonl, project_dir, summary=summary)), 201
+
+
+@app.route("/api/tree")
+def list_tree():
+    path = request.args.get("path", str(Path.home()))
+    real_path = Path(path).resolve()
+    if not real_path.is_dir():
+        abort(400, "Not a directory")
+
+    home = Path.home().resolve()
+    if real_path != home and not str(real_path).startswith(str(home) + "/"):
+        abort(403, "Path must be under home directory")
+
+    all_projects = _get_project_counts()
+
+    self_encoded = _encode_path(str(real_path))
+    self_project = all_projects.get(self_encoded)
+
+    home_str = str(home)
+    if str(real_path) == home_str:
+        display_path = "~"
+    elif str(real_path).startswith(home_str + "/"):
+        display_path = "~/" + str(real_path)[len(home_str) + 1 :]
+    else:
+        display_path = str(real_path)
+
+    children = []
+    try:
+        entries = sorted(os.listdir(str(real_path)))
+    except PermissionError:
+        entries = []
+
+    for name in entries:
+        if name.startswith("."):
+            continue
+        child_path = real_path / name
+        if not child_path.is_dir():
+            continue
+
+        child_encoded = _encode_path(str(child_path))
+        child_project = all_projects.get(child_encoded)
+        is_project = child_project is not None
+
+        child_prefix = child_encoded + "-"
+        has_descendants = any(k.startswith(child_prefix) for k in all_projects)
+
+        if not is_project and not has_descendants:
+            continue
+
+        children.append(
+            {
+                "name": name,
+                "path": str(child_path),
+                "isProject": is_project,
+                "projectId": child_project["id"] if child_project else None,
+                "projectPath": str(CLAUDE_PROJECTS_DIR / child_encoded) if child_project else None,
+                "memoryCount": child_project["memoryCount"] if child_project else 0,
+                "sessionCount": child_project["sessionCount"] if child_project else 0,
+                "hasChildren": has_descendants,
+            }
+        )
+
+    return jsonify(
+        {
+            "path": str(real_path),
+            "displayPath": display_path,
+            "selfProject": {
+                "id": self_project["id"],
+                "projectPath": str(CLAUDE_PROJECTS_DIR / self_encoded),
+                "memoryCount": self_project["memoryCount"],
+                "sessionCount": self_project["sessionCount"],
+            }
+            if self_project
+            else None,
+            "children": children,
+        }
+    )
 
 
 if __name__ == "__main__":

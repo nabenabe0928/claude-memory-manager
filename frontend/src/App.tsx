@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState } from "react";
-import { ProjectList } from "./components/ProjectList";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ProjectTree } from "./components/ProjectTree";
 import { CategoryPicker } from "./components/CategoryPicker";
 import { MemoryList } from "./components/MemoryList";
 import { MemoryDetail } from "./components/MemoryDetail";
 import { SessionList } from "./components/SessionList";
 import { SessionDetail } from "./components/SessionDetail";
-import type { Project, Memory, Session } from "./types";
+import type { Project, Memory, Session, TreeChild, TreeResponse } from "./types";
 import { modKey, altKey } from "./utils";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import "./App.css";
@@ -13,29 +13,23 @@ import "./App.css";
 export type View = "projects" | "category" | "memories" | "detail" | "sessions" | "sessionDetail";
 
 function App() {
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [memories, setMemories] = useState<Memory[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [selectedMemory, setSelectedMemory] = useState<Memory | null>(null);
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
   const [view, setView] = useState<View>("projects");
   const [toast, setToast] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetch("/api/projects")
-      .then((r) => r.json())
-      .then((data) => {
-        setProjects(data);
-        setLoading(false);
-      });
-  }, []);
+  const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set());
+  const [childrenCache, setChildrenCache] = useState<Map<string, TreeChild[]>>(new Map());
+  const [selfProjectCache, setSelfProjectCache] = useState<Map<string, TreeResponse["selfProject"]>>(new Map());
+  const [rootResponse, setRootResponse] = useState<TreeResponse | null>(null);
 
-  const selectedProject = projects.find((p) => p.id === selectedProjectId);
+  const selectedProjectId = selectedProject?.id ?? null;
 
-  const handleSelectProject = (id: string) => {
-    setSelectedProjectId(id);
+  const handleSelectProject = (project: Project) => {
+    setSelectedProject(project);
     setSelectedMemory(null);
     setView("category");
   };
@@ -66,7 +60,7 @@ function App() {
   };
 
   const handleBackToProjects = () => {
-    setSelectedProjectId(null);
+    setSelectedProject(null);
     setMemories([]);
     setSessions([]);
     setSelectedMemory(null);
@@ -106,12 +100,8 @@ function App() {
         const updated = memories.filter((m) => m.filename !== filename);
         setMemories(updated);
         setSelectedMemory(null);
-        setProjects((prev) =>
-          prev.map((p) =>
-            p.id === selectedProjectId
-              ? { ...p, memoryCount: p.memoryCount - 1 }
-              : p
-          )
+        setSelectedProject((prev) =>
+          prev ? { ...prev, memoryCount: prev.memoryCount - 1 } : null,
         );
         if (updated.length > 0) {
           setView("memories");
@@ -122,17 +112,15 @@ function App() {
   };
 
   const handleRefreshProjects = () => {
-    return fetch("/api/projects")
-      .then((r) => r.json())
-      .then((data) => setProjects(data));
+    setExpandedPaths(new Set());
+    setChildrenCache(new Map());
+    setSelfProjectCache(new Map());
+    setRootResponse(null);
+    return Promise.resolve();
   };
 
   const handleRefreshCategory = () => {
-    return fetch("/api/projects")
-      .then((r) => r.json())
-      .then((data) => {
-        setProjects(data);
-      });
+    return Promise.resolve();
   };
 
   const handleRefreshMemories = () => {
@@ -150,7 +138,7 @@ function App() {
         setMemories(data);
         if (selectedMemory) {
           const updated = data.find(
-            (m: Memory) => m.filename === selectedMemory.filename
+            (m: Memory) => m.filename === selectedMemory.filename,
           );
           setSelectedMemory(updated ?? null);
         }
@@ -172,12 +160,8 @@ function App() {
       .then((r) => r.json())
       .then(() => {
         setSessions((prev) => prev.filter((s) => s.id !== sessionId));
-        setProjects((prev) =>
-          prev.map((p) =>
-            p.id === selectedProjectId
-              ? { ...p, sessionCount: p.sessionCount - 1 }
-              : p
-          )
+        setSelectedProject((prev) =>
+          prev ? { ...prev, sessionCount: prev.sessionCount - 1 } : null,
         );
       });
   };
@@ -186,7 +170,7 @@ function App() {
     if (!selectedProjectId) return;
     fetch(
       `/api/projects/${selectedProjectId}/sessions/${sessionId}/duplicate`,
-      { method: "POST" }
+      { method: "POST" },
     )
       .then((r) => {
         if (!r.ok) throw new Error("Duplicate failed");
@@ -194,12 +178,8 @@ function App() {
       })
       .then((newSession: Session) => {
         setSessions((prev) => [newSession, ...prev]);
-        setProjects((prev) =>
-          prev.map((p) =>
-            p.id === selectedProjectId
-              ? { ...p, sessionCount: p.sessionCount + 1 }
-              : p
-          )
+        setSelectedProject((prev) =>
+          prev ? { ...prev, sessionCount: prev.sessionCount + 1 } : null,
         );
         setSelectedSession(null);
         setView("sessions");
@@ -215,7 +195,7 @@ function App() {
 
   useKeyboardShortcuts({
     view,
-    selectedProject,
+    selectedProject: selectedProject ?? undefined,
     selectedMemory,
     selectedSession,
     onBack: {
@@ -268,9 +248,26 @@ function App() {
     return () => window.removeEventListener("popstate", onPopState);
   }, []);
 
-  if (loading) {
-    return <div className="app-loading">Loading...</div>;
-  }
+  const handleTreeToggle = useCallback(
+    (path: string, children: TreeChild[], selfProject: TreeResponse["selfProject"]) => {
+      setExpandedPaths((prev) => new Set([...prev, path]));
+      setChildrenCache((prev) => new Map([...prev, [path, children]]));
+      setSelfProjectCache((prev) => new Map([...prev, [path, selfProject]]));
+    },
+    [],
+  );
+
+  const handleTreeCollapse = useCallback((path: string) => {
+    setExpandedPaths((prev) => {
+      const next = new Set(prev);
+      next.delete(path);
+      return next;
+    });
+  }, []);
+
+  const handleRootLoaded = useCallback((response: TreeResponse) => {
+    setRootResponse(response);
+  }, []);
 
   return (
     <div className="app">
@@ -289,7 +286,17 @@ function App() {
       </header>
       <div className="app-body">
         {view === "projects" && (
-          <ProjectList projects={projects} onSelect={handleSelectProject} onRefresh={handleRefreshProjects} />
+          <ProjectTree
+            expandedPaths={expandedPaths}
+            childrenCache={childrenCache}
+            selfProjectCache={selfProjectCache}
+            rootResponse={rootResponse}
+            onToggle={handleTreeToggle}
+            onCollapse={handleTreeCollapse}
+            onSelect={handleSelectProject}
+            onRefresh={handleRefreshProjects}
+            onRootLoaded={handleRootLoaded}
+          />
         )}
         {view === "category" && selectedProject && (
           <CategoryPicker
