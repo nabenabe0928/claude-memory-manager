@@ -3,6 +3,27 @@ import type { Project, TreeChild, TreeResponse } from "../types";
 import { RefreshButton } from "./RefreshButton";
 import "./ProjectTree.css";
 
+function CountBadges({ memoryCount, sessionCount }: { memoryCount: number; sessionCount: number }) {
+  return (
+    <div className="project-counts">
+      {memoryCount > 0 && (
+        <span className="count-badge memory-badge">{memoryCount} memories</span>
+      )}
+      <span className="count-badge session-badge">{sessionCount} sessions</span>
+    </div>
+  );
+}
+
+function toProject(
+  id: string,
+  displayName: string,
+  projectPath: string,
+  memoryCount: number,
+  sessionCount: number,
+): Project {
+  return { id, displayName, path: projectPath, memoryCount, sessionCount };
+}
+
 interface TreeNodeRowProps {
   node: TreeChild;
   depth: number;
@@ -33,13 +54,7 @@ function TreeNodeRow({
 
   const handleProjectClick = () => {
     if (!node.isProject || !node.projectId || !node.projectPath) return;
-    onSelect({
-      id: node.projectId,
-      displayName: displayPath,
-      path: node.projectPath,
-      memoryCount: node.memoryCount,
-      sessionCount: node.sessionCount,
-    });
+    onSelect(toProject(node.projectId, displayPath, node.projectPath, node.memoryCount, node.sessionCount));
   };
 
   const handleToggle = (e: React.MouseEvent) => {
@@ -73,16 +88,7 @@ function TreeNodeRow({
           {node.name}
         </span>
         {node.isProject && (
-          <div className="project-counts">
-            {node.memoryCount > 0 && (
-              <span className="count-badge memory-badge">
-                {node.memoryCount} memories
-              </span>
-            )}
-            <span className="count-badge session-badge">
-              {node.sessionCount} sessions
-            </span>
-          </div>
+          <CountBadges memoryCount={node.memoryCount} sessionCount={node.sessionCount} />
         )}
       </li>
       {isExpanded && selfProject && (
@@ -94,27 +100,12 @@ function TreeNodeRow({
           <span
             className="tree-node-name tree-clickable"
             onClick={() =>
-              onSelect({
-                id: selfProject.id,
-                displayName: displayPath,
-                path: selfProject.projectPath,
-                memoryCount: selfProject.memoryCount,
-                sessionCount: selfProject.sessionCount,
-              })
+              onSelect(toProject(selfProject.id, displayPath, selfProject.projectPath, selfProject.memoryCount, selfProject.sessionCount))
             }
           >
             (this directory)
           </span>
-          <div className="project-counts">
-            {selfProject.memoryCount > 0 && (
-              <span className="count-badge memory-badge">
-                {selfProject.memoryCount} memories
-              </span>
-            )}
-            <span className="count-badge session-badge">
-              {selfProject.sessionCount} sessions
-            </span>
-          </div>
+          <CountBadges memoryCount={selfProject.memoryCount} sessionCount={selfProject.sessionCount} />
         </li>
       )}
       {isExpanded &&
@@ -179,10 +170,13 @@ export function ProjectTree({
       return;
     }
     setExpandingPath(path);
-    const resp = await fetch(`/api/tree?path=${encodeURIComponent(path)}`);
-    const data: TreeResponse = await resp.json();
-    onToggle(path, data.children, data.selfProject);
-    setExpandingPath(null);
+    try {
+      const resp = await fetch(`/api/tree?path=${encodeURIComponent(path)}`);
+      const data: TreeResponse = await resp.json();
+      onToggle(path, data.children, data.selfProject);
+    } finally {
+      setExpandingPath(null);
+    }
   };
 
   if (!rootResponse) {
@@ -191,13 +185,8 @@ export function ProjectTree({
 
   const handleRootSelfClick = () => {
     if (!rootResponse.selfProject) return;
-    onSelect({
-      id: rootResponse.selfProject.id,
-      displayName: rootResponse.displayPath,
-      path: rootResponse.selfProject.projectPath,
-      memoryCount: rootResponse.selfProject.memoryCount,
-      sessionCount: rootResponse.selfProject.sessionCount,
-    });
+    const sp = rootResponse.selfProject;
+    onSelect(toProject(sp.id, rootResponse.displayPath, sp.projectPath, sp.memoryCount, sp.sessionCount));
   };
 
   return (
@@ -219,16 +208,10 @@ export function ProjectTree({
             >
               {rootResponse.displayPath} (this directory)
             </span>
-            <div className="project-counts">
-              {rootResponse.selfProject.memoryCount > 0 && (
-                <span className="count-badge memory-badge">
-                  {rootResponse.selfProject.memoryCount} memories
-                </span>
-              )}
-              <span className="count-badge session-badge">
-                {rootResponse.selfProject.sessionCount} sessions
-              </span>
-            </div>
+            <CountBadges
+              memoryCount={rootResponse.selfProject.memoryCount}
+              sessionCount={rootResponse.selfProject.sessionCount}
+            />
           </li>
         )}
         {rootResponse.children.map((child) => (

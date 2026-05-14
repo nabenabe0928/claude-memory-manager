@@ -23,9 +23,19 @@ def _encode_path(real_path: str) -> str:
     return "-" + real_path.strip("/").replace("/", "-").replace(".", "-")
 
 
+def _display_path(real_path: Path) -> str:
+    home = Path.home().resolve()
+    home_str = str(home)
+    rp = str(real_path)
+    if rp == home_str:
+        return "~"
+    if rp.startswith(home_str + "/"):
+        return "~/" + rp[len(home_str) + 1 :]
+    return rp
+
+
 def _get_project_display_name(dirname: str) -> str:
-    home = str(Path.home()).strip("/").replace("/", "-").replace(".", "-")
-    prefix = "-" + home + "-"
+    prefix = _encode_path(str(Path.home())) + "-"
     if dirname.startswith(prefix):
         return "~/" + dirname[len(prefix) :]
     return dirname.lstrip("-")
@@ -350,26 +360,18 @@ def list_tree():
     self_encoded = _encode_path(str(real_path))
     self_project = all_projects.get(self_encoded)
 
-    home_str = str(home)
-    if str(real_path) == home_str:
-        display_path = "~"
-    elif str(real_path).startswith(home_str + "/"):
-        display_path = "~/" + str(real_path)[len(home_str) + 1 :]
-    else:
-        display_path = str(real_path)
+    display_path = _display_path(real_path)
 
     children = []
     try:
-        entries = sorted(os.listdir(str(real_path)))
+        dir_entries = sorted(os.scandir(str(real_path)), key=lambda e: e.name)
     except PermissionError:
-        entries = []
+        dir_entries = []
 
-    for name in entries:
-        if name.startswith("."):
+    for entry in dir_entries:
+        if entry.name.startswith(".") or not entry.is_dir():
             continue
-        child_path = real_path / name
-        if not child_path.is_dir():
-            continue
+        child_path = real_path / entry.name
 
         child_encoded = _encode_path(str(child_path))
         child_project = all_projects.get(child_encoded)
@@ -383,7 +385,7 @@ def list_tree():
 
         children.append(
             {
-                "name": name,
+                "name": entry.name,
                 "path": str(child_path),
                 "isProject": is_project,
                 "projectId": child_project["id"] if child_project else None,

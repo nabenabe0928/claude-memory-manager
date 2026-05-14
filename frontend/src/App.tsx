@@ -250,9 +250,9 @@ function App() {
 
   const handleTreeToggle = useCallback(
     (path: string, children: TreeChild[], selfProject: TreeResponse["selfProject"]) => {
-      setExpandedPaths((prev) => new Set([...prev, path]));
-      setChildrenCache((prev) => new Map([...prev, [path, children]]));
-      setSelfProjectCache((prev) => new Map([...prev, [path, selfProject]]));
+      setExpandedPaths((prev) => { const next = new Set(prev); next.add(path); return next; });
+      setChildrenCache((prev) => new Map(prev).set(path, children));
+      setSelfProjectCache((prev) => new Map(prev).set(path, selfProject));
     },
     [],
   );
