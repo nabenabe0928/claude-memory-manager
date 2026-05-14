@@ -43,6 +43,10 @@
         ├── index.css
         ├── types.ts                   # Shared TypeScript types
         ├── utils.ts                   # Shared utility functions (formatSize, etc.)
+        ├── hooks/
+        │   ├── useKeyboardShortcuts.ts # Global keyboard shortcut handler
+        │   └── __tests__/
+        │       └── useKeyboardShortcuts.test.tsx
         ├── components/
         │   ├── ProjectList.tsx        # Project list view
         │   ├── CategoryPicker.tsx     # Memories vs Sessions picker

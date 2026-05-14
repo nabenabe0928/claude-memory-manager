@@ -17,7 +17,7 @@ export function MemoryDetail({ memory, onDelete, onBack, onRefresh }: Props) {
 
   return (
     <div className="memory-detail">
-      <button className="back-btn" onClick={onBack}>
+      <button className="back-btn" onClick={onBack} title="Back (Cmd+[)">
         &larr; Back to Memories
       </button>
       <div className="detail-header">

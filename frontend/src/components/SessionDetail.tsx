@@ -151,7 +151,7 @@ export function SessionDetail({ session, projectId, onBack, onDelete, onDuplicat
   return (
     <div className="session-detail">
       <div className="session-detail-header">
-        <button className="back-btn" onClick={onBack}>
+        <button className="back-btn" onClick={onBack} title="Back (Cmd+[)">
           &larr; Back to Sessions
         </button>
         <div className="detail-actions">
@@ -159,7 +159,7 @@ export function SessionDetail({ session, projectId, onBack, onDelete, onDuplicat
           <button
             className="copy-path-btn"
             onClick={handleCopyResume}
-            title={resumeCommand}
+            title={`${resumeCommand} (Opt+R)`}
           >
             {copiedResume ? "Copied!" : "Copy resume cmd"}
           </button>

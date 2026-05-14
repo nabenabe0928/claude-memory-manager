@@ -16,7 +16,7 @@ export function CopyPathButton({ path }: Props) {
   };
 
   return (
-    <button className="copy-path-btn" onClick={handleCopy} title={path}>
+    <button className="copy-path-btn" onClick={handleCopy} title={`${path} (Opt+P)`}>
       {copied ? "Copied!" : "Copy path"}
     </button>
   );

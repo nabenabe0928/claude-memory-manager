@@ -25,7 +25,7 @@ export function CategoryPicker({
 }: Props) {
   return (
     <div className="category-picker">
-      <button className="back-btn" onClick={onBack}>
+      <button className="back-btn" onClick={onBack} title="Back (Cmd+[)">
         &larr; Back to Projects
       </button>
       <div className="page-title-row">

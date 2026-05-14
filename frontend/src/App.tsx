@@ -6,9 +6,10 @@ import { MemoryDetail } from "./components/MemoryDetail";
 import { SessionList } from "./components/SessionList";
 import { SessionDetail } from "./components/SessionDetail";
 import type { Project, Memory, Session } from "./types";
+import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import "./App.css";
 
-type View = "projects" | "category" | "memories" | "detail" | "sessions" | "sessionDetail";
+export type View = "projects" | "category" | "memories" | "detail" | "sessions" | "sessionDetail";
 
 function App() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -19,6 +20,7 @@ function App() {
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<View>("projects");
+  const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/projects")
@@ -204,6 +206,35 @@ function App() {
       .catch(console.error);
   };
 
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(null), 1500);
+    return () => clearTimeout(timer);
+  }, [toast]);
+
+  useKeyboardShortcuts({
+    view,
+    selectedProject,
+    selectedMemory,
+    selectedSession,
+    onBack: {
+      category: handleBackToProjects,
+      memories: handleBackToCategory,
+      detail: handleBackToMemories,
+      sessions: handleBackToCategory,
+      sessionDetail: handleBackToSessions,
+    },
+    onRefresh: {
+      projects: handleRefreshProjects,
+      category: handleRefreshCategory,
+      memories: handleRefreshMemories,
+      detail: handleRefreshMemory,
+      sessions: handleRefreshSessions,
+      sessionDetail: handleRefreshSessions,
+    },
+    onToast: setToast,
+  });
+
   if (loading) {
     return <div className="app-loading">Loading...</div>;
   }
@@ -273,6 +304,7 @@ function App() {
           />
         )}
       </div>
+      {toast && <div className="toast">{toast}</div>}
     </div>
   );
 }

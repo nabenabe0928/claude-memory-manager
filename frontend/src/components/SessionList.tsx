@@ -24,7 +24,7 @@ export function SessionList({ sessions, projectName, onBack, onSelect, onDelete,
 
   return (
     <div className="session-list">
-      <button className="back-btn" onClick={onBack}>
+      <button className="back-btn" onClick={onBack} title="Back (Cmd+[)">
         &larr; Back
       </button>
       <div className="page-title-row">

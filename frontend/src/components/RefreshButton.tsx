@@ -21,6 +21,7 @@ export function RefreshButton({ onRefresh }: Props) {
       className="refresh-btn"
       onClick={handleClick}
       disabled={refreshing}
+      title="Refresh (Cmd+R)"
     >
       {refreshing ? "Refreshing..." : "Refresh"}
     </button>

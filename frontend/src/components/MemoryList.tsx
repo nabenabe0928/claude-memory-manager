@@ -23,7 +23,7 @@ const TYPE_COLORS: Record<string, string> = {
 export function MemoryList({ memories, projectName, memoryDirPath, onSelect, onBack, onRefresh }: Props) {
   return (
     <div className="memory-list">
-      <button className="back-btn" onClick={onBack}>
+      <button className="back-btn" onClick={onBack} title="Back (Cmd+[)">
         &larr; Back
       </button>
       <div className="page-title-row">

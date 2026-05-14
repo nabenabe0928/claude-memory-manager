@@ -11,7 +11,7 @@ describe("CopyPathButton", () => {
 
   it("sets the title attribute to the path", () => {
     render(<CopyPathButton path="/some/long/path" />);
-    expect(screen.getByRole("button")).toHaveAttribute("title", "/some/long/path");
+    expect(screen.getByRole("button")).toHaveAttribute("title", "/some/long/path (Opt+P)");
   });
 
   it("shows 'Copied!' feedback after click", async () => {
