@@ -32,12 +32,14 @@ function renderDetail(overrides: {
   projectId?: string;
   onBack?: () => void;
   onDelete?: (id: string) => void;
+  onDuplicate?: (id: string) => void;
 } = {}) {
   const props = {
     session: makeSession(),
     projectId: "proj-1",
     onBack: vi.fn(),
     onDelete: vi.fn(),
+    onDuplicate: vi.fn(),
     ...overrides,
   };
   return { props, ...render(<SessionDetail {...props} />) };

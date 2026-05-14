@@ -89,7 +89,7 @@ describe("SessionList", () => {
       const listItem = screen.getByText("A test session").closest("li")!;
       await user.click(within(listItem).getByRole("button", { name: "Delete" }));
 
-      const dialog = screen.getByText(/are you sure/i).closest(".dialog")!;
+      const dialog = screen.getByText(/are you sure/i).closest(".dialog") as HTMLElement;
       await user.click(within(dialog).getByRole("button", { name: "Delete" }));
       expect(onDelete).toHaveBeenCalledWith("del-sess");
     });
