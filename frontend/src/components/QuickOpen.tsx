@@ -16,10 +16,10 @@ type DrillItem =
 
 type QuickOpenResult =
   | { kind: "dir"; child: TreeChild; score: number; indices: number[] }
-  | { kind: "project"; child: TreeChild; score: number; indices: number[] }
+  | { kind: "project"; child: TreeChild; displayPath: string; score: number; indices: number[] }
   | { kind: "selfProject"; tree: TreeResponse; score: number; indices: number[] }
-  | { kind: "memory"; projectChild: TreeChild; memory: Memory; score: number; indices: number[] }
-  | { kind: "session"; projectChild: TreeChild; session: Session; score: number; indices: number[] };
+  | { kind: "memory"; projectChild: TreeChild; projectDisplayPath: string; memory: Memory; score: number; indices: number[] }
+  | { kind: "session"; projectChild: TreeChild; projectDisplayPath: string; session: Session; score: number; indices: number[] };
 
 function HighlightedText({ text, indices }: { text: string; indices: number[] }) {
   if (indices.length === 0) return <>{text}</>;
@@ -53,10 +53,14 @@ function HighlightedText({ text, indices }: { text: string; indices: number[] })
   );
 }
 
-function childToProject(child: TreeChild): Project {
+function buildDisplayPath(parentDisplayPath: string, name: string): string {
+  return parentDisplayPath === "~" ? `~/${name}` : `${parentDisplayPath}/${name}`;
+}
+
+function childToProject(child: TreeChild, displayPath: string): Project {
   return {
     id: child.projectId!,
-    displayName: child.path,
+    displayName: displayPath,
     path: child.projectPath!,
     memoryCount: child.memoryCount,
     sessionCount: child.sessionCount,
@@ -80,7 +84,7 @@ function getResultLabel(item: QuickOpenResult): string {
     case "project":
       return item.child.name;
     case "selfProject":
-      return ". (this directory)";
+      return item.tree.displayPath + " (this directory)";
     case "memory":
       return item.memory.name || item.memory.filename;
     case "session":
@@ -94,9 +98,8 @@ function getResultMeta(item: QuickOpenResult): string {
       return "directory";
     case "project":
     case "selfProject": {
-      const c = item.kind === "project" ? item.child : null;
-      const mc = c ? c.memoryCount : (item as { kind: "selfProject"; tree: TreeResponse }).tree.selfProject!.memoryCount;
-      const sc = c ? c.sessionCount : (item as { kind: "selfProject"; tree: TreeResponse }).tree.selfProject!.sessionCount;
+      const mc = item.kind === "project" ? item.child.memoryCount : item.tree.selfProject!.memoryCount;
+      const sc = item.kind === "project" ? item.child.sessionCount : item.tree.selfProject!.sessionCount;
       const parts: string[] = [];
       if (mc > 0) parts.push(`${mc} mem`);
       if (sc > 0) parts.push(`${sc} sess`);
@@ -140,6 +143,7 @@ export function QuickOpen({
   const treeCacheRef = useRef<Map<string, TreeResponse>>(new Map());
 
   const [drillProjectChild, setDrillProjectChild] = useState<TreeChild | null>(null);
+  const [drillProjectDisplayPath, setDrillProjectDisplayPath] = useState("");
   const [drillItems, setDrillItems] = useState<DrillItem[]>([]);
   const [drillLoading, setDrillLoading] = useState(false);
   const drillCacheRef = useRef<Map<string, DrillItem[]>>(new Map());
@@ -160,12 +164,16 @@ export function QuickOpen({
     : null;
 
   useEffect(() => {
+    let active = true;
+
     const fetchTree = (path?: string) => {
       const cacheKey = path ?? "__root__";
       const cached = treeCacheRef.current.get(cacheKey);
       if (cached) {
-        setCurrentTree(cached);
-        setTreeLoading(false);
+        if (active) {
+          setCurrentTree(cached);
+          setTreeLoading(false);
+        }
         return;
       }
       setTreeLoading(true);
@@ -174,16 +182,20 @@ export function QuickOpen({
         .then((r) => r.json())
         .then((data: TreeResponse) => {
           treeCacheRef.current.set(cacheKey, data);
-          setCurrentTree(data);
-          setTreeLoading(false);
+          if (active) {
+            setCurrentTree(data);
+            setTreeLoading(false);
+          }
         });
     };
 
     if (!resolvedPath) {
       fetchTree();
       setDrillProjectChild(null);
+      setDrillProjectDisplayPath("");
       setDrillItems([]);
-      return;
+      setDrillLoading(false);
+      return () => { active = false; };
     }
 
     const pathSegments = resolvedPath.split("/");
@@ -195,12 +207,12 @@ export function QuickOpen({
       if (cachedRoot) {
         tree = cachedRoot;
       } else {
+        setTreeLoading(true);
         const r = await fetch("/api/tree");
         tree = await r.json();
         treeCacheRef.current.set(rootKey, tree);
       }
-
-      let currentPath = tree.path;
+      if (!active) return;
 
       for (let i = 0; i < pathSegments.length; i++) {
         const seg = pathSegments[i];
@@ -216,66 +228,90 @@ export function QuickOpen({
         }
 
         if (!bestChild) {
-          setCurrentTree(tree);
-          setTreeLoading(false);
-          setDrillProjectChild(null);
-          setDrillItems([]);
-          return;
-        }
-
-        if (i === pathSegments.length - 1 && bestChild.isProject) {
-          setCurrentTree(tree);
-          setTreeLoading(false);
-          setDrillProjectChild(bestChild);
-
-          const cachedDrill = drillCacheRef.current.get(bestChild.projectId!);
-          if (cachedDrill) {
-            setDrillItems(cachedDrill);
-          } else {
-            setDrillLoading(true);
-            const pid = bestChild.projectId!;
-            const [memories, sessions] = await Promise.all([
-              fetch(`/api/projects/${pid}/memories`).then((r) => r.json()),
-              fetch(`/api/projects/${pid}/sessions`).then((r) => r.json()),
-            ]) as [Memory[], Session[]];
-            const items: DrillItem[] = [
-              ...memories.map((m) => ({ kind: "memory" as const, memory: m })),
-              ...sessions.map((s) => ({ kind: "session" as const, session: s })),
-            ];
-            drillCacheRef.current.set(pid, items);
-            setDrillItems(items);
+          if (active) {
+            setCurrentTree(tree);
+            setTreeLoading(false);
+            setDrillProjectChild(null);
+            setDrillProjectDisplayPath("");
+            setDrillItems([]);
             setDrillLoading(false);
           }
           return;
         }
 
-        if (!bestChild.hasChildren && !bestChild.isProject) {
+        const childDisplayPath = buildDisplayPath(tree.displayPath, bestChild.name);
+
+        if (i === pathSegments.length - 1 && bestChild.isProject && !bestChild.hasChildren) {
+          if (!active) return;
           setCurrentTree(tree);
           setTreeLoading(false);
-          setDrillProjectChild(null);
-          setDrillItems([]);
+          setDrillProjectChild(bestChild);
+          setDrillProjectDisplayPath(childDisplayPath);
+
+          const cachedDrill = drillCacheRef.current.get(bestChild.projectId!);
+          if (cachedDrill) {
+            setDrillItems(cachedDrill);
+            setDrillLoading(false);
+          } else {
+            setDrillLoading(true);
+            try {
+              const pid = bestChild.projectId!;
+              const [memories, sessions] = await Promise.all([
+                fetch(`/api/projects/${pid}/memories`).then((r) => r.json()),
+                fetch(`/api/projects/${pid}/sessions`).then((r) => r.json()),
+              ]) as [Memory[], Session[]];
+              if (!active) return;
+              const items: DrillItem[] = [
+                ...memories.map((m) => ({ kind: "memory" as const, memory: m })),
+                ...sessions.map((s) => ({ kind: "session" as const, session: s })),
+              ];
+              drillCacheRef.current.set(pid, items);
+              setDrillItems(items);
+            } catch {
+              if (!active) return;
+              setDrillItems([]);
+            }
+            if (active) setDrillLoading(false);
+          }
           return;
         }
 
-        currentPath = bestChild.path;
-        const cacheKey = currentPath;
+        if (!bestChild.hasChildren && !bestChild.isProject) {
+          if (active) {
+            setCurrentTree(tree);
+            setTreeLoading(false);
+            setDrillProjectChild(null);
+            setDrillProjectDisplayPath("");
+            setDrillItems([]);
+            setDrillLoading(false);
+          }
+          return;
+        }
+
+        const cacheKey = bestChild.path;
         const cachedTree = treeCacheRef.current.get(cacheKey);
         if (cachedTree) {
           tree = cachedTree;
         } else {
-          const r = await fetch(`/api/tree?path=${encodeURIComponent(currentPath)}`);
+          const r = await fetch(`/api/tree?path=${encodeURIComponent(bestChild.path)}`);
           tree = await r.json();
           treeCacheRef.current.set(cacheKey, tree);
         }
+        if (!active) return;
       }
 
-      setCurrentTree(tree);
-      setTreeLoading(false);
-      setDrillProjectChild(null);
-      setDrillItems([]);
+      if (active) {
+        setCurrentTree(tree);
+        setTreeLoading(false);
+        setDrillProjectChild(null);
+        setDrillProjectDisplayPath("");
+        setDrillItems([]);
+        setDrillLoading(false);
+      }
     };
 
     resolve();
+    return () => { active = false; };
   }, [resolvedPath]);
 
   const results: QuickOpenResult[] = useMemo(() => {
@@ -283,9 +319,9 @@ export function QuickOpen({
       if (filterText === "") {
         return drillItems.map((item) => {
           if (item.kind === "memory") {
-            return { kind: "memory" as const, projectChild: drillProjectChild, memory: item.memory, score: 0, indices: [] };
+            return { kind: "memory" as const, projectChild: drillProjectChild, projectDisplayPath: drillProjectDisplayPath, memory: item.memory, score: 0, indices: [] };
           }
-          return { kind: "session" as const, projectChild: drillProjectChild, session: item.session, score: 0, indices: [] };
+          return { kind: "session" as const, projectChild: drillProjectChild, projectDisplayPath: drillProjectDisplayPath, session: item.session, score: 0, indices: [] };
         });
       }
       const matched: QuickOpenResult[] = [];
@@ -296,9 +332,9 @@ export function QuickOpen({
         const m = fuzzyMatch(filterText, label);
         if (m) {
           if (item.kind === "memory") {
-            matched.push({ kind: "memory", projectChild: drillProjectChild, memory: item.memory, score: m.score, indices: m.indices });
+            matched.push({ kind: "memory", projectChild: drillProjectChild, projectDisplayPath: drillProjectDisplayPath, memory: item.memory, score: m.score, indices: m.indices });
           } else {
-            matched.push({ kind: "session", projectChild: drillProjectChild, session: item.session, score: m.score, indices: m.indices });
+            matched.push({ kind: "session", projectChild: drillProjectChild, projectDisplayPath: drillProjectDisplayPath, session: item.session, score: m.score, indices: m.indices });
           }
         }
       }
@@ -310,14 +346,23 @@ export function QuickOpen({
 
     const items: QuickOpenResult[] = [];
 
-    if (currentTree.selfProject && filterText === "") {
-      items.push({ kind: "selfProject", tree: currentTree, score: -1, indices: [] });
+    if (currentTree.selfProject) {
+      if (filterText === "") {
+        items.push({ kind: "selfProject", tree: currentTree, score: -1, indices: [] });
+      } else {
+        const label = currentTree.displayPath;
+        const m = fuzzyMatch(filterText, label);
+        if (m) {
+          items.push({ kind: "selfProject", tree: currentTree, score: m.score, indices: m.indices });
+        }
+      }
     }
 
     for (const child of currentTree.children) {
+      const childDisplayPath = buildDisplayPath(currentTree.displayPath, child.name);
       if (filterText === "") {
         if (child.isProject && !child.hasChildren) {
-          items.push({ kind: "project", child, score: 0, indices: [] });
+          items.push({ kind: "project", child, displayPath: childDisplayPath, score: 0, indices: [] });
         } else {
           items.push({ kind: "dir", child, score: 0, indices: [] });
         }
@@ -325,7 +370,7 @@ export function QuickOpen({
         const m = fuzzyMatch(filterText, child.name);
         if (m) {
           if (child.isProject && !child.hasChildren) {
-            items.push({ kind: "project", child, score: m.score, indices: m.indices });
+            items.push({ kind: "project", child, displayPath: childDisplayPath, score: m.score, indices: m.indices });
           } else {
             items.push({ kind: "dir", child, score: m.score, indices: m.indices });
           }
@@ -338,7 +383,7 @@ export function QuickOpen({
     }
 
     return items;
-  }, [currentTree, drillProjectChild, drillItems, filterText]);
+  }, [currentTree, drillProjectChild, drillProjectDisplayPath, drillItems, filterText]);
 
   useEffect(() => {
     setSelectedIndex(0);
@@ -357,16 +402,16 @@ export function QuickOpen({
         setQuery((resolvedPath ? resolvedPath + "/" : "") + result.child.name + "/");
         break;
       case "project":
-        onNavigateToProject(childToProject(result.child));
+        onNavigateToProject(childToProject(result.child, result.displayPath));
         break;
       case "selfProject":
         onNavigateToProject(selfToProject(result.tree));
         break;
       case "memory":
-        onNavigateToMemory(childToProject(result.projectChild), result.memory);
+        onNavigateToMemory(childToProject(result.projectChild, result.projectDisplayPath), result.memory);
         break;
       case "session":
-        onNavigateToSession(childToProject(result.projectChild), result.session);
+        onNavigateToSession(childToProject(result.projectChild, result.projectDisplayPath), result.session);
         break;
     }
   };
@@ -400,13 +445,6 @@ export function QuickOpen({
         }
         break;
       }
-      case "Backspace":
-        if (query.endsWith("/") && filterText === "") {
-          e.preventDefault();
-          const newSegments = resolvedSegments.slice(0, -1);
-          setQuery(newSegments.length > 0 ? newSegments.join("/") + "/" : "");
-        }
-        break;
     }
   };
 
@@ -449,7 +487,7 @@ export function QuickOpen({
                     {item.kind}
                   </span>
                 )}
-                {(item.kind === "dir") && (
+                {item.kind === "dir" && (
                   <span className="quickopen-kind-badge quickopen-kind-dir">dir</span>
                 )}
                 <span className="quickopen-result-name">
@@ -461,7 +499,7 @@ export function QuickOpen({
           </ul>
         )}
         <div className="quickopen-hint">
-          ↑↓ navigate &middot; Enter select &middot; Tab drill in &middot; Backspace go up &middot; Esc close
+          ↑↓ navigate &middot; Enter select &middot; Tab drill in &middot; Esc close
         </div>
       </div>
     </div>
