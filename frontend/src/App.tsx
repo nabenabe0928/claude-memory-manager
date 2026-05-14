@@ -246,6 +246,12 @@ function App() {
         <p className="app-note">
           Note: Claude Code also reads CLAUDE.md, and settings.json in ~/.claude, which are not shown here.
         </p>
+        <div className="shortcut-hints">
+          <span>Back: Cmd+[</span>
+          <span>Refresh: Cmd+R</span>
+          <span>Copy path: Opt+P</span>
+          <span>Copy resume cmd: Opt+R</span>
+        </div>
       </header>
       <div className="app-body">
         {view === "projects" && (

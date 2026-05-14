@@ -159,7 +159,7 @@ export function SessionDetail({ session, projectId, onBack, onDelete, onDuplicat
           <button
             className="copy-path-btn"
             onClick={handleCopyResume}
-            title={`${resumeCommand} (Opt+R)`}
+            title={`${resumeCommand} (Copy by Opt+R)`}
           >
             {copiedResume ? "Copied!" : "Copy resume cmd"}
           </button>
