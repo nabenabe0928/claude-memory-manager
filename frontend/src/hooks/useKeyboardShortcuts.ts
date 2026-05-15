@@ -72,7 +72,8 @@ export function useKeyboardShortcuts(config: KeyboardShortcutConfig): void {
         return;
       }
 
-      if (mod && e.key === "r") {
+      const isRefresh = !mod && e.shiftKey && e.code === "KeyR";
+      if (isRefresh) {
         e.preventDefault();
         Promise.resolve(c.onRefresh[c.view]()).then(() => {
           c.onToast("Refreshed!");

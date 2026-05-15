@@ -89,11 +89,11 @@ describe("useKeyboardShortcuts", () => {
     const views: View[] = ["projects", "category", "memories", "detail", "sessions", "sessionDetail"];
 
     views.forEach((view) => {
-      it(`Cmd+R triggers refresh for ${view} view`, () => {
+      it(`Shift+R triggers refresh for ${view} view`, () => {
         const config = makeConfig({ view });
         renderHook(() => useKeyboardShortcuts(config));
 
-        fireKey("r", { ctrlKey: true });
+        fireKey("R", { shiftKey: true, code: "KeyR" });
         expect(config.onRefresh[view]).toHaveBeenCalledOnce();
       });
     });
@@ -224,7 +224,7 @@ describe("useKeyboardShortcuts", () => {
 
       const textarea = document.createElement("textarea");
       document.body.appendChild(textarea);
-      textarea.dispatchEvent(new KeyboardEvent("keydown", { key: "r", ctrlKey: true, bubbles: true }));
+      textarea.dispatchEvent(new KeyboardEvent("keydown", { key: "R", shiftKey: true, code: "KeyR", bubbles: true }));
       document.body.removeChild(textarea);
 
       expect(config.onRefresh.category).not.toHaveBeenCalled();

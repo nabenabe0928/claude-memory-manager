@@ -16,6 +16,13 @@ import frontmatter
 app = Flask(__name__)
 CORS(app)
 
+
+@app.after_request
+def _no_cache(response):
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
 CLAUDE_PROJECTS_DIR = Path.home() / ".claude" / "projects"
 
 

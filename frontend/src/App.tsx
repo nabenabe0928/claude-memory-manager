@@ -28,6 +28,7 @@ function App() {
   const [selfProjectCache, setSelfProjectCache] = useState<Map<string, TreeResponse["selfProject"]>>(new Map());
   const [rootResponse, setRootResponse] = useState<TreeResponse | null>(null);
 
+  const sessionDetailRefresh = useRef<(() => Promise<void>) | null>(null);
   const selectedProjectId = selectedProject?.id ?? null;
 
   const handleSelectProject = (project: Project) => {
@@ -168,7 +169,21 @@ function App() {
   };
 
   const handleRefreshCategory = () => {
-    return Promise.resolve();
+    if (!selectedProjectId) return Promise.resolve();
+    return Promise.all([
+      fetch(`/api/projects/${selectedProjectId}/memories`).then((r) => r.json()),
+      fetch(`/api/projects/${selectedProjectId}/sessions`).then((r) => r.json()),
+    ]).then(([memoriesData, sessionsData]) => {
+      setSelectedProject((prev) =>
+        prev
+          ? {
+              ...prev,
+              memoryCount: memoriesData.length,
+              sessionCount: sessionsData.length,
+            }
+          : null,
+      );
+    });
   };
 
   const handleRefreshMemories = () => {
@@ -260,7 +275,7 @@ function App() {
       memories: handleRefreshMemories,
       detail: handleRefreshMemory,
       sessions: handleRefreshSessions,
-      sessionDetail: handleRefreshSessions,
+      sessionDetail: () => sessionDetailRefresh.current?.() ?? Promise.resolve(),
     },
     onToast: setToast,
     onOpenPalette: handleOpenPalette,
@@ -339,7 +354,7 @@ function App() {
         <h3 className="shortcut-hints-title">Shortcut Hints</h3>
         <div className="shortcut-hints">
           <span>Back: {modKey}+[</span>
-          <span>Refresh: {modKey}+R</span>
+          <span>Refresh: Shift+R</span>
           <span>Copy path: {altKey}+P</span>
           <span>Copy resume cmd: {altKey}+R</span>
           <span>Quick Open: {modKey}+P</span>
@@ -411,6 +426,7 @@ function App() {
               handleBackToSessions();
             }}
             onDuplicate={handleDuplicateSession}
+            onRegisterRefresh={(fn) => { sessionDetailRefresh.current = fn; }}
           />
         )}
       </div>
