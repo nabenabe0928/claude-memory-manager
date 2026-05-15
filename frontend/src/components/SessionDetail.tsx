@@ -333,19 +333,19 @@ export function SessionDetail({ session, projectId, projectDisplayName, onBack, 
         </div>
         </>
       )}
-      {confirmDeleteLine !== null && (() => {
-        const extra = countUncheckedDescendants(messages, new Set([confirmDeleteLine]));
-        return (
-          <DeleteConfirmDialog
-            itemName="this message"
-            description={extra > 0
+      {confirmDeleteLine !== null && (
+        <DeleteConfirmDialog
+          itemName="this message"
+          description={(() => {
+            const extra = countUncheckedDescendants(messages, new Set([confirmDeleteLine]));
+            return extra > 0
               ? `Are you sure you want to delete this message? ${extra} dependent ${extra === 1 ? "reply" : "replies"} will also be deleted. This action cannot be undone.`
-              : undefined}
-            onConfirm={() => handleDeleteMessage(confirmDeleteLine)}
-            onCancel={() => setConfirmDeleteLine(null)}
-          />
-        );
-      })()}
+              : undefined;
+          })()}
+          onConfirm={() => handleDeleteMessage(confirmDeleteLine)}
+          onCancel={() => setConfirmDeleteLine(null)}
+        />
+      )}
       {showConfirm && (
         <DeleteConfirmDialog
           itemName={`session ${session.id.slice(0, 8)}...`}
@@ -358,18 +358,18 @@ export function SessionDetail({ session, projectId, projectDisplayName, onBack, 
           onCancel={() => setShowConfirm(false)}
         />
       )}
-      {showBatchConfirm && (() => {
-        const extra = countUncheckedDescendants(messages, selected);
-        return (
-          <DeleteConfirmDialog
-            itemName={`${count} messages`}
-            title="Delete Messages"
-            description={`Are you sure you want to delete ${count} ${count === 1 ? "message" : "messages"}?${extra > 0 ? ` ${extra} additional dependent ${extra === 1 ? "reply" : "replies"} will also be deleted.` : ""} This action cannot be undone.`}
-            onConfirm={handleBatchDeleteMessages}
-            onCancel={() => setShowBatchConfirm(false)}
-          />
-        );
-      })()}
+      {showBatchConfirm && (
+        <DeleteConfirmDialog
+          itemName={`${count} messages`}
+          title="Delete Messages"
+          description={(() => {
+            const extra = countUncheckedDescendants(messages, selected);
+            return `Are you sure you want to delete ${count} ${count === 1 ? "message" : "messages"}?${extra > 0 ? ` ${extra} additional dependent ${extra === 1 ? "reply" : "replies"} will also be deleted.` : ""} This action cannot be undone.`;
+          })()}
+          onConfirm={handleBatchDeleteMessages}
+          onCancel={() => setShowBatchConfirm(false)}
+        />
+      )}
     </div>
   );
 }

@@ -173,7 +173,7 @@ def _resolve_session_file(project_id: str, session_id: str) -> Path:
 
 def _collect_cascade_indices(lines: list[str], target_indices: set[int]) -> list[int]:
     uuid_at: dict[int, str] = {}
-    children_of: dict[str, list[int]] = {}
+    children_of: dict[str, list[int]] = defaultdict(list)
 
     for i, line in enumerate(lines):
         try:
@@ -185,7 +185,7 @@ def _collect_cascade_indices(lines: list[str], target_indices: set[int]) -> list
         if uuid_val:
             uuid_at[i] = uuid_val
         if parent_val:
-            children_of.setdefault(parent_val, []).append(i)
+            children_of[parent_val].append(i)
 
     to_delete = set(target_indices)
     queue = [uuid_at[idx] for idx in target_indices if idx in uuid_at]
