@@ -176,6 +176,19 @@ def list_projects():
     return jsonify(_get_projects())
 
 
+@app.route("/api/projects/<project_id>/counts")
+def project_counts(project_id: str):
+    project_dir = _resolve_project_dir(project_id)
+    memory_dir = project_dir / "memory"
+    memory_count = 0
+    if memory_dir.is_dir():
+        memory_count = sum(
+            1 for f in memory_dir.iterdir() if f.suffix == ".md" and f.name != "MEMORY.md"
+        )
+    session_count = sum(1 for f in project_dir.iterdir() if f.suffix == ".jsonl")
+    return jsonify({"memoryCount": memory_count, "sessionCount": session_count})
+
+
 @app.route("/api/projects/<project_id>/memories")
 def list_memories(project_id: str):
     memory_dir = _resolve_project_memory_dir(project_id)

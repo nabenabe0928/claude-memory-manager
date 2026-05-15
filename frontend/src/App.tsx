@@ -170,20 +170,13 @@ function App() {
 
   const handleRefreshCategory = () => {
     if (!selectedProjectId) return Promise.resolve();
-    return Promise.all([
-      fetch(`/api/projects/${selectedProjectId}/memories`).then((r) => r.json()),
-      fetch(`/api/projects/${selectedProjectId}/sessions`).then((r) => r.json()),
-    ]).then(([memoriesData, sessionsData]) => {
-      setSelectedProject((prev) =>
-        prev
-          ? {
-              ...prev,
-              memoryCount: memoriesData.length,
-              sessionCount: sessionsData.length,
-            }
-          : null,
-      );
-    });
+    return fetch(`/api/projects/${selectedProjectId}/counts`)
+      .then((r) => r.json())
+      .then((counts) => {
+        setSelectedProject((prev) =>
+          prev ? { ...prev, memoryCount: counts.memoryCount, sessionCount: counts.sessionCount } : null,
+        );
+      });
   };
 
   const handleRefreshMemories = () => {

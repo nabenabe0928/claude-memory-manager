@@ -1,4 +1,4 @@
-import { memo, useEffect, useState } from "react";
+import { memo, useCallback, useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
@@ -148,17 +148,17 @@ export function SessionDetail({ session, projectId, projectDisplayName, onBack, 
       });
   };
 
-  const handleRefresh = async () => {
+  const handleRefresh = useCallback(async () => {
     const r = await fetch(`/api/projects/${projectId}/sessions/${session.id}`);
     const data = await r.json();
     setMessages(data);
     setMdRendered(new Set());
-  };
+  }, [projectId, session.id]);
 
   useEffect(() => {
     onRegisterRefresh?.(handleRefresh);
     return () => onRegisterRefresh?.(() => Promise.resolve());
-  });
+  }, [handleRefresh, onRegisterRefresh]);
 
   useEffect(() => {
     fetch(`/api/projects/${projectId}/sessions/${session.id}`)
