@@ -229,6 +229,33 @@ def delete_memory(project_id: str, filename: str):
     return jsonify({"deleted": filename})
 
 
+@app.route("/api/projects/<project_id>/memories/batch-delete", methods=["POST"])
+def batch_delete_memories(project_id: str):
+    memory_dir = _resolve_project_memory_dir(project_id)
+    data = request.get_json(force=True)
+    filenames = data.get("filenames", [])
+    if not isinstance(filenames, list) or not filenames:
+        abort(400, "filenames must be a non-empty list")
+
+    deleted = []
+    for filename in filenames:
+        if "/" in filename or ".." in filename:
+            continue
+        filepath = memory_dir / filename
+        if filepath.is_file() and filepath.suffix == ".md":
+            filepath.unlink()
+            deleted.append(filename)
+
+    memory_index = memory_dir / "MEMORY.md"
+    if deleted and memory_index.is_file():
+        deleted_set = set(deleted)
+        lines = memory_index.read_text().splitlines()
+        updated = [line for line in lines if not any(fn in line for fn in deleted_set)]
+        memory_index.write_text("\n".join(updated) + "\n" if updated else "")
+
+    return jsonify({"deleted": deleted})
+
+
 @app.route("/api/projects/<project_id>/sessions")
 def list_sessions(project_id: str):
     project_dir = _resolve_project_dir(project_id)
@@ -329,6 +356,53 @@ def delete_session_message(project_id: str, session_id: str, line_index: int):
         fh.writelines(lines)
 
     return jsonify({"deleted": line_index})
+
+
+@app.route("/api/projects/<project_id>/sessions/batch-delete", methods=["POST"])
+def batch_delete_sessions(project_id: str):
+    project_dir = _resolve_project_dir(project_id)
+    data = request.get_json(force=True)
+    session_ids = data.get("sessionIds", [])
+    if not isinstance(session_ids, list) or not session_ids:
+        abort(400, "sessionIds must be a non-empty list")
+
+    deleted = []
+    for session_id in session_ids:
+        if "/" in session_id or ".." in session_id:
+            continue
+        jsonl_file = project_dir / f"{session_id}.jsonl"
+        if jsonl_file.is_file():
+            companion_dir = project_dir / session_id
+            jsonl_file.unlink()
+            if companion_dir.is_dir():
+                shutil.rmtree(companion_dir)
+            deleted.append(session_id)
+
+    return jsonify({"deleted": deleted})
+
+
+@app.route(
+    "/api/projects/<project_id>/sessions/<session_id>/messages/batch-delete",
+    methods=["POST"],
+)
+def batch_delete_session_messages(project_id: str, session_id: str):
+    jsonl_file = _resolve_session_file(project_id, session_id)
+    data = request.get_json(force=True)
+    line_indices = data.get("lineIndices", [])
+    if not isinstance(line_indices, list) or not line_indices:
+        abort(400, "lineIndices must be a non-empty list")
+
+    with open(jsonl_file) as fh:
+        lines = fh.readlines()
+
+    valid_indices = [i for i in line_indices if 0 <= i < len(lines)]
+    for i in sorted(valid_indices, reverse=True):
+        del lines[i]
+
+    with open(jsonl_file, "w") as fh:
+        fh.writelines(lines)
+
+    return jsonify({"deleted": valid_indices})
 
 
 @app.route("/api/projects/<project_id>/sessions/<session_id>", methods=["DELETE"])

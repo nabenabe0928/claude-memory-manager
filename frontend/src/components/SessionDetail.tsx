@@ -3,6 +3,7 @@ import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
 import "highlight.js/styles/github.css";
+import { useSelection } from "../hooks/useSelection";
 import { DeleteConfirmDialog } from "./DeleteConfirmDialog";
 import { CopyPathButton } from "./CopyPathButton";
 import { RefreshButton } from "./RefreshButton";
@@ -10,6 +11,7 @@ import type { Session } from "../types";
 import { modKey, altKey } from "../utils";
 import "./markdown.css";
 import "./SessionDetail.css";
+import "./BatchToolbar.css";
 
 interface MessagePart {
   type: "text" | "tool_use" | "tool_result" | "image";
@@ -104,6 +106,8 @@ export function SessionDetail({ session, projectId, projectDisplayName, onBack, 
   const [copiedResume, setCopiedResume] = useState(false);
   const [confirmDeleteLine, setConfirmDeleteLine] = useState<number | null>(null);
   const [mdRendered, setMdRendered] = useState<Set<number>>(new Set());
+  const { selected, toggle, toggleAll, clear, isAllSelected, count } = useSelection<number>();
+  const [showBatchConfirm, setShowBatchConfirm] = useState(false);
 
   const toggleMarkdown = (index: number) => {
     setMdRendered((prev) => {
@@ -139,6 +143,25 @@ export function SessionDetail({ session, projectId, projectDisplayName, onBack, 
       .then((r) => {
         if (!r.ok) return;
         setConfirmDeleteLine(null);
+        setMdRendered(new Set());
+        return fetch(`/api/projects/${projectId}/sessions/${session.id}`);
+      })
+      .then((r) => r?.json())
+      .then((data) => {
+        if (data) setMessages(data);
+      });
+  };
+
+  const handleBatchDeleteMessages = () => {
+    fetch(`/api/projects/${projectId}/sessions/${session.id}/messages/batch-delete`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ lineIndices: Array.from(selected) }),
+    })
+      .then((r) => {
+        if (!r.ok) return;
+        clear();
+        setShowBatchConfirm(false);
         setMdRendered(new Set());
         return fetch(`/api/projects/${projectId}/sessions/${session.id}`);
       })
@@ -210,11 +233,36 @@ export function SessionDetail({ session, projectId, projectDisplayName, onBack, 
       ) : messages.length === 0 ? (
         <p className="empty">No messages found in this session.</p>
       ) : (
+        <>
+        {count > 0 && (
+          <div className="batch-toolbar">
+            <label className="select-all-label">
+              <input
+                type="checkbox"
+                checked={isAllSelected(messages.map((m) => m.lineIndex))}
+                onChange={() => toggleAll(messages.map((m) => m.lineIndex))}
+              />
+              {count} selected
+            </label>
+            <button className="batch-delete-btn" onClick={() => setShowBatchConfirm(true)}>
+              Delete Selected ({count})
+            </button>
+            <button className="batch-cancel-btn" onClick={clear}>Cancel</button>
+          </div>
+        )}
         <div className="messages">
           {messages.map((m, i) => (
-            <div key={i} className={`message message-${m.role}`}>
+            <div key={i} className={`message message-${m.role}${selected.has(m.lineIndex) ? " message-selected" : ""}`}>
               <div className="message-top">
-                <span className="message-role">{m.role}</span>
+                <div className="message-top-left">
+                  <input
+                    type="checkbox"
+                    className="item-checkbox"
+                    checked={selected.has(m.lineIndex)}
+                    onChange={() => toggle(m.lineIndex)}
+                  />
+                  <span className="message-role">{m.role}</span>
+                </div>
                 <div className="message-actions">
                   {m.parts.some((p) => p.type === "text" || p.detail) && (
                     <button
@@ -246,6 +294,7 @@ export function SessionDetail({ session, projectId, projectDisplayName, onBack, 
             </div>
           ))}
         </div>
+        </>
       )}
       {confirmDeleteLine !== null && (
         <DeleteConfirmDialog
@@ -264,6 +313,15 @@ export function SessionDetail({ session, projectId, projectDisplayName, onBack, 
             setShowConfirm(false);
           }}
           onCancel={() => setShowConfirm(false)}
+        />
+      )}
+      {showBatchConfirm && (
+        <DeleteConfirmDialog
+          itemName={`${count} messages`}
+          title="Delete Messages"
+          description={`Are you sure you want to delete ${count} ${count === 1 ? "message" : "messages"}? This action cannot be undone.`}
+          onConfirm={handleBatchDeleteMessages}
+          onCancel={() => setShowBatchConfirm(false)}
         />
       )}
     </div>

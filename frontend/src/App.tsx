@@ -114,6 +114,41 @@ function App() {
       });
   };
 
+  const handleBatchDeleteMemories = async (filenames: string[]) => {
+    if (!selectedProjectId) return;
+    const res = await fetch(`/api/projects/${selectedProjectId}/memories/batch-delete`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ filenames }),
+    });
+    const data = await res.json();
+    const deletedSet = new Set(data.deleted as string[]);
+    const updated = memories.filter((m) => !deletedSet.has(m.filename));
+    setMemories(updated);
+    setSelectedMemory(null);
+    setSelectedProject((prev) =>
+      prev ? { ...prev, memoryCount: prev.memoryCount - data.deleted.length } : null,
+    );
+    if (updated.length === 0) {
+      setView("category");
+    }
+  };
+
+  const handleBatchDeleteSessions = async (sessionIds: string[]) => {
+    if (!selectedProjectId) return;
+    const res = await fetch(`/api/projects/${selectedProjectId}/sessions/batch-delete`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionIds }),
+    });
+    const data = await res.json();
+    const deletedSet = new Set(data.deleted as string[]);
+    setSessions((prev) => prev.filter((s) => !deletedSet.has(s.id)));
+    setSelectedProject((prev) =>
+      prev ? { ...prev, sessionCount: prev.sessionCount - data.deleted.length } : null,
+    );
+  };
+
   const handleOpenPalette = () => {
     setPaletteOpen((prev) => !prev);
   };
@@ -387,6 +422,7 @@ function App() {
             onSelect={handleSelectMemory}
             onBack={handleBackToCategory}
             onRefresh={handleRefreshMemories}
+            onBatchDelete={handleBatchDeleteMemories}
           />
         )}
         {view === "detail" && selectedMemory && (
@@ -405,6 +441,7 @@ function App() {
             onBack={handleBackToCategory}
             onSelect={handleSelectSession}
             onDelete={handleDeleteSession}
+            onBatchDelete={handleBatchDeleteSessions}
             onRefresh={handleRefreshSessions}
           />
         )}

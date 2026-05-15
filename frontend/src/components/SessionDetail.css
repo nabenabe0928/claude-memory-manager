@@ -45,11 +45,21 @@
   background: #f5f5f5;
 }
 
+.message-selected {
+  outline: 2px solid #2196f3;
+}
+
 .message-top {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 4px;
+}
+
+.message-top-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .message-role {

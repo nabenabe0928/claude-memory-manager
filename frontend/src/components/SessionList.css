@@ -40,6 +40,10 @@
   background-color: #f0f0f0;
 }
 
+.session-list li.selected {
+  background-color: #e3f2fd;
+}
+
 .session-info {
   flex: 1;
   min-width: 0;
