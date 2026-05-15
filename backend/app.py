@@ -1,3 +1,4 @@
+from collections import defaultdict
 from datetime import datetime
 import json
 import os
@@ -11,6 +12,8 @@ from flask import jsonify
 from flask import request
 from flask_cors import CORS
 import frontmatter
+
+from tool_formatters import format_tool_input
 
 
 app = Flask(__name__)
@@ -343,7 +346,7 @@ def get_session(project_id: str, session_id: str):
                         parts.append({"type": "image", "label": "[Image]"})
                     elif ptype == "tool_use":
                         name = part.get("name", "?")
-                        detail = json.dumps(part.get("input", {}), indent=2, ensure_ascii=False)
+                        detail = format_tool_input(name, part.get("input", {}))
                         parts.append(
                             {
                                 "type": "tool_use",
