@@ -10,7 +10,7 @@ function TreeIcon({ children }: { children: React.ReactNode }) {
 function FolderIcon({ open }: { open: boolean }) {
   return (
     <TreeIcon>
-      <svg viewBox="0 0 24 24" fill="#f9a825" stroke="#f57f17" strokeWidth="1">
+      <svg viewBox="0 0 24 24" fill="var(--folder-fill)" stroke="var(--folder-stroke)" strokeWidth="1">
         {open ? (
           <>
             <path d="M2 6c0-1.1.9-2 2-2h5l2 2h9c1.1 0 2 .9 2 2v1H2V6z" />
@@ -27,7 +27,7 @@ function FolderIcon({ open }: { open: boolean }) {
 function ProjectIcon() {
   return (
     <TreeIcon>
-      <svg viewBox="0 0 24 24" fill="none" stroke="#1565c0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary-dark)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <polyline points="16 18 22 12 16 6" />
         <polyline points="8 6 2 12 8 18" />
       </svg>
@@ -38,7 +38,7 @@ function ProjectIcon() {
 function SelfProjectIcon() {
   return (
     <TreeIcon>
-      <svg viewBox="0 0 24 24" fill="none" stroke="#1565c0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary-dark)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="12" r="10" />
         <line x1="12" y1="8" x2="12" y2="12" />
         <line x1="12" y1="16" x2="12.01" y2="16" />

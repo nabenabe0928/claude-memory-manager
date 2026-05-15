@@ -26,6 +26,7 @@ function makeConfig(overrides: Record<string, unknown> = {}) {
     },
     onToast: vi.fn(),
     onOpenPalette: vi.fn(),
+    onToggleTheme: vi.fn(),
     ...overrides,
   };
 }

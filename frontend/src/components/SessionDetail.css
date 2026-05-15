@@ -18,11 +18,11 @@
 .session-detail-meta {
   margin: 4px 0 16px;
   font-size: 12px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .loading-text {
-  color: #999;
+  color: var(--text-muted);
   font-size: 13px;
 }
 
@@ -38,15 +38,15 @@
 }
 
 .message-user {
-  background: #e3f2fd;
+  background: var(--primary-bg);
 }
 
 .message-assistant {
-  background: #f5f5f5;
+  background: var(--bg-surface);
 }
 
 .message-selected {
-  outline: 2px solid #2196f3;
+  outline: 2px solid var(--primary);
 }
 
 .message-top {
@@ -66,7 +66,7 @@
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .message-actions {
@@ -85,24 +85,24 @@
 
 .copy-btn,
 .md-btn {
-  border: 1px solid #ccc;
-  color: #666;
+  border: 1px solid var(--action-btn-border);
+  color: var(--action-btn-text);
 }
 
 .copy-btn:hover,
 .md-btn:hover {
-  background: #e0e0e0;
-  color: #333;
+  background: var(--action-btn-hover-bg);
+  color: var(--action-btn-hover-text);
 }
 
 .msg-delete-btn {
-  border: 1px solid #e0b0b0;
-  color: #c44;
+  border: 1px solid var(--msg-delete-border);
+  color: var(--msg-delete-text);
 }
 
 .msg-delete-btn:hover {
-  background: #fdeaea;
-  color: #a00;
+  background: var(--msg-delete-hover-bg);
+  color: var(--msg-delete-hover-text);
 }
 
 .message-text {
@@ -121,7 +121,7 @@
 
 .message-label {
   font-size: 13px;
-  color: #888;
+  color: var(--text-muted);
 }
 
 .collapsible-part {
@@ -130,18 +130,18 @@
 
 .collapsible-toggle {
   background: none;
-  border: 1px solid #ddd;
+  border: 1px solid var(--collapsible-border);
   border-radius: 4px;
   padding: 3px 10px;
   font-size: 12px;
-  color: #666;
+  color: var(--text-secondary);
   cursor: pointer;
   text-align: left;
   transition: background-color 0.15s;
 }
 
 .collapsible-toggle:hover {
-  background: #e8e8e8;
+  background: var(--collapsible-hover);
 }
 
 .collapsible-arrow {
@@ -155,7 +155,7 @@
   padding: 8px 12px;
   font-size: 12px;
   line-height: 1.5;
-  background: rgba(0, 0, 0, 0.04);
+  background: var(--collapsible-bg);
   border-radius: 4px;
   white-space: pre-wrap;
   word-break: break-word;
@@ -164,18 +164,18 @@
 }
 
 .md-btn-active {
-  background: #1976d2;
-  border-color: #1976d2;
+  background: var(--md-active-bg);
+  border-color: var(--md-active-bg);
   color: #fff;
 }
 
 .md-btn-active:hover {
-  background: #1565c0;
-  border-color: #1565c0;
+  background: var(--md-active-hover);
+  border-color: var(--md-active-hover);
   color: #fff;
 }
 
 .empty {
-  color: #999;
+  color: var(--text-muted);
   font-size: 13px;
 }

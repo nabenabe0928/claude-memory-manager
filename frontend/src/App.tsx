@@ -22,6 +22,7 @@ function App() {
   const [view, setView] = useState<View>("projects");
   const [toast, setToast] = useState<string | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [dark, setDark] = useState(() => localStorage.getItem("theme") !== "light");
 
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set());
   const [childrenCache, setChildrenCache] = useState<Map<string, TreeChild[]>>(new Map());
@@ -152,6 +153,13 @@ function App() {
   const handleOpenPalette = () => {
     setPaletteOpen((prev) => !prev);
   };
+
+  const handleToggleTheme = useCallback(() => {
+    const next = !document.documentElement.classList.contains("dark");
+    document.documentElement.classList.toggle("dark", next);
+    localStorage.setItem("theme", next ? "dark" : "light");
+    setDark(next);
+  }, []);
 
   const handlePaletteNavigateMemory = (project: Project, memory: Memory) => {
     setPaletteOpen(false);
@@ -307,6 +315,7 @@ function App() {
     },
     onToast: setToast,
     onOpenPalette: handleOpenPalette,
+    onToggleTheme: handleToggleTheme,
   });
 
   const isPopState = useRef(false);
@@ -367,14 +376,35 @@ function App() {
       <header className="app-header">
         <div className="app-header-row">
           <h1>Claude Memory Manager</h1>
-          {view !== "projects" && (
-            <button className="action-btn home-btn" onClick={handleBackToProjects} title="Home">
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 12L12 3l9 9" />
-                <path d="M5 10v9a1 1 0 001 1h4v-5h4v5h4a1 1 0 001-1v-9" />
-              </svg>
+          <div className="app-header-actions">
+            <button className="action-btn home-btn" onClick={handleToggleTheme} title={`Toggle theme (${altKey}+T)`}>
+              {dark ? (
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="5" />
+                  <line x1="12" y1="1" x2="12" y2="3" />
+                  <line x1="12" y1="21" x2="12" y2="23" />
+                  <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+                  <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+                  <line x1="1" y1="12" x2="3" y2="12" />
+                  <line x1="21" y1="12" x2="23" y2="12" />
+                  <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+                  <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+                </svg>
+              ) : (
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
+                </svg>
+              )}
             </button>
-          )}
+            {view !== "projects" && (
+              <button className="action-btn home-btn" onClick={handleBackToProjects} title="Home">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 12L12 3l9 9" />
+                  <path d="M5 10v9a1 1 0 001 1h4v-5h4v5h4a1 1 0 001-1v-9" />
+                </svg>
+              </button>
+            )}
+          </div>
         </div>
         <p className="app-note">
           Note: Claude Code also reads CLAUDE.md, and settings.json in ~/.claude, which are not shown here.
@@ -386,6 +416,7 @@ function App() {
           <span>Copy path: {altKey}+P</span>
           <span>Copy resume cmd: {altKey}+R</span>
           <span>Quick Open: {modKey}+P</span>
+          <span>Theme: {altKey}+T</span>
         </div>
       </header>
       <div className="app-body">

@@ -21,17 +21,18 @@
   align-items: center;
   gap: 8px;
   padding: 16px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--border);
   border-radius: 8px;
-  background: white;
+  background: var(--bg);
   cursor: pointer;
   text-align: left;
   transition: border-color 0.15s, background-color 0.15s;
+  color: var(--text);
 }
 
 .category-card:hover:not(:disabled) {
-  border-color: #2196f3;
-  background: #f8fbff;
+  border-color: var(--primary);
+  background: var(--category-hover-bg);
 }
 
 .category-card:disabled {
@@ -45,7 +46,7 @@
 }
 
 .category-count {
-  background: #e0e0e0;
+  background: var(--badge-gray-bg);
   border-radius: 10px;
   padding: 2px 8px;
   font-size: 12px;
@@ -55,5 +56,5 @@
 .category-desc {
   width: 100%;
   font-size: 12px;
-  color: #999;
+  color: var(--text-muted);
 }

@@ -3,7 +3,7 @@
   align-items: center;
   gap: 12px;
   padding: 8px 12px;
-  background: #e3f2fd;
+  background: var(--primary-bg);
   border-radius: 6px;
   margin-bottom: 8px;
   font-size: 13px;
@@ -22,7 +22,7 @@
 }
 
 .batch-toolbar .batch-delete-btn {
-  background: #e53935;
+  background: var(--danger);
   color: white;
   border: none;
   padding: 4px 12px;
@@ -34,13 +34,13 @@
 }
 
 .batch-toolbar .batch-delete-btn:hover {
-  background: #c62828;
+  background: var(--danger-hover);
 }
 
 .batch-toolbar .batch-cancel-btn {
   background: none;
   border: none;
-  color: #666;
+  color: var(--text-secondary);
   cursor: pointer;
   font-size: 12px;
   padding: 4px 8px;
@@ -49,13 +49,13 @@
 }
 
 .batch-toolbar .batch-cancel-btn:hover {
-  background: #bbdefb;
+  background: var(--primary-bg-hover);
 }
 
 .item-checkbox {
   width: 16px;
   height: 16px;
-  accent-color: #2196f3;
+  accent-color: var(--checkbox-accent);
   cursor: pointer;
   flex-shrink: 0;
 }

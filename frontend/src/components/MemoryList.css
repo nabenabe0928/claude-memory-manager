@@ -12,7 +12,7 @@
 .memory-list .subtitle {
   margin: 4px 0 12px;
   font-size: 12px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .memory-list ul {
@@ -29,11 +29,11 @@
   border-radius: 6px;
   cursor: pointer;
   transition: background-color 0.15s;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .memory-list li.selected {
-  background-color: #e3f2fd;
+  background-color: var(--bg-selected);
 }
 
 .memory-item-content {
@@ -46,7 +46,7 @@
 }
 
 .memory-list li:hover {
-  background-color: #f0f0f0;
+  background-color: var(--bg-hover);
 }
 
 
@@ -74,7 +74,7 @@
 .memory-desc {
   margin: 4px 0 0;
   font-size: 12px;
-  color: #666;
+  color: var(--text-secondary);
   line-height: 1.4;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -83,6 +83,6 @@
 }
 
 .empty {
-  color: #999;
+  color: var(--text-muted);
   font-size: 13px;
 }

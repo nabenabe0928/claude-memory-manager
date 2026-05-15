@@ -12,7 +12,7 @@
 .session-list .subtitle {
   margin: 4px 0 12px;
   font-size: 12px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .session-list ul {
@@ -29,7 +29,7 @@
   border-radius: 6px;
   gap: 12px;
   transition: background-color 0.15s;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .session-list li:last-child {
@@ -37,11 +37,11 @@
 }
 
 .session-list li:hover {
-  background-color: #f0f0f0;
+  background-color: var(--bg-hover);
 }
 
 .session-list li.selected {
-  background-color: #e3f2fd;
+  background-color: var(--bg-selected);
 }
 
 .session-info {
@@ -64,13 +64,13 @@
   gap: 12px;
   margin-top: 4px;
   font-size: 11px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .delete-btn-small {
-  background: #ffebee;
-  color: #c62828;
-  border: 1px solid #ffcdd2;
+  background: var(--danger-bg);
+  color: var(--danger-text);
+  border: 1px solid var(--danger-border);
   padding: 4px 12px;
   border-radius: 4px;
   cursor: pointer;
@@ -81,10 +81,10 @@
 }
 
 .delete-btn-small:hover {
-  background: #ffcdd2;
+  background: var(--danger-border);
 }
 
 .empty {
-  color: #999;
+  color: var(--text-muted);
   font-size: 13px;
 }

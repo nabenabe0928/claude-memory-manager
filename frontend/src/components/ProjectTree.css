@@ -8,7 +8,7 @@
   font-size: 14px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .project-tree ul {
@@ -24,7 +24,7 @@
   border-radius: 6px;
   font-size: 13px;
   transition: background-color 0.15s;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .tree-row:last-child {
@@ -47,7 +47,7 @@
 }
 
 .tree-row-project:hover {
-  background-color: #f0f0f0;
+  background-color: var(--bg-hover);
 }
 
 .tree-toggle {
@@ -61,14 +61,14 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  color: #999;
+  color: var(--text-muted);
   padding: 0;
   border-radius: 3px;
 }
 
 .tree-toggle:hover {
-  background-color: #e0e0e0;
-  color: #333;
+  background-color: var(--action-btn-hover-bg);
+  color: var(--action-btn-hover-text);
 }
 
 .tree-toggle-spacer {
@@ -88,7 +88,7 @@
 
 .tree-clickable {
   cursor: pointer;
-  color: #1565c0;
+  color: var(--primary-dark);
 }
 
 .tree-clickable:hover {
@@ -97,15 +97,15 @@
 
 .tree-dir-clickable {
   cursor: pointer;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .tree-dir-clickable:hover {
-  color: #333;
+  color: var(--text);
 }
 
 .tree-dir {
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .tree-self-project {
@@ -113,7 +113,7 @@
 }
 
 .tree-loading {
-  color: #999;
+  color: var(--text-muted);
   font-size: 12px;
   padding: 4px 24px;
 }
@@ -133,16 +133,16 @@
 }
 
 .project-tree .memory-badge {
-  background: #e3f2fd;
-  color: #1565c0;
+  background: var(--primary-bg);
+  color: var(--primary-dark);
 }
 
 .project-tree .session-badge {
-  background: #e0e0e0;
-  color: #555;
+  background: var(--badge-gray-bg);
+  color: var(--badge-gray-text);
 }
 
 .project-tree .empty {
-  color: #999;
+  color: var(--text-muted);
   font-size: 13px;
 }

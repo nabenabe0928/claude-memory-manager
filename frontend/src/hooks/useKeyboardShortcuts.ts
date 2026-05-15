@@ -13,6 +13,7 @@ interface KeyboardShortcutConfig {
   onRefresh: Record<View, () => Promise<void> | void>;
   onToast: (message: string) => void;
   onOpenPalette: () => void;
+  onToggleTheme: () => void;
 }
 
 function isEditableTarget(e: KeyboardEvent): boolean {
@@ -93,6 +94,12 @@ export function useKeyboardShortcuts(config: KeyboardShortcutConfig): void {
           navigator.clipboard.writeText(path);
           c.onToast("Path copied!");
         }
+        return;
+      }
+
+      if (e.altKey && e.code === "KeyT") {
+        e.preventDefault();
+        c.onToggleTheme();
         return;
       }
 

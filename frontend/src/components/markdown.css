@@ -26,14 +26,14 @@
 }
 
 .markdown-body code {
-  background: rgba(0, 0, 0, 0.06);
+  background: var(--code-bg);
   padding: 1px 4px;
   border-radius: 3px;
   font-size: 12px;
 }
 
 .markdown-body pre {
-  background: rgba(0, 0, 0, 0.06);
+  background: var(--code-bg);
   padding: 10px 12px;
   border-radius: 6px;
   overflow-x: auto;
@@ -48,8 +48,8 @@
 .markdown-body blockquote {
   margin: 6px 0;
   padding: 4px 12px;
-  border-left: 3px solid #ccc;
-  color: #666;
+  border-left: 3px solid var(--blockquote-border);
+  color: var(--text-secondary);
 }
 
 .markdown-body table {
@@ -59,21 +59,21 @@
 
 .markdown-body th,
 .markdown-body td {
-  border: 1px solid #ddd;
+  border: 1px solid var(--collapsible-border);
   padding: 4px 8px;
   font-size: 12px;
 }
 
 .markdown-body th {
-  background: rgba(0, 0, 0, 0.04);
+  background: var(--table-header-bg);
 }
 
 .markdown-body a {
-  color: #1976d2;
+  color: var(--primary);
 }
 
 .markdown-body hr {
   border: none;
-  border-top: 1px solid #ddd;
+  border-top: 1px solid var(--collapsible-border);
   margin: 12px 0;
 }
