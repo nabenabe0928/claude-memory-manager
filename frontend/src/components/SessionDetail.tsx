@@ -23,6 +23,8 @@ interface MessagePart {
 interface Message {
   role: string;
   lineIndex: number;
+  uuid?: string | null;
+  parentUuid?: string | null;
   parts: MessagePart[];
 }
 
@@ -96,6 +98,41 @@ function getTextForCopy(m: Message) {
       return p.detail ? `${label}\n${p.detail}` : label;
     })
     .join("\n");
+}
+
+function countUncheckedDescendants(messages: Message[], targetIndices: Set<number>): number {
+  const childrenOf = new Map<string, number[]>();
+  const uuidAt = new Map<number, string>();
+  for (const m of messages) {
+    if (m.uuid) uuidAt.set(m.lineIndex, m.uuid);
+    if (m.parentUuid) {
+      const list = childrenOf.get(m.parentUuid) ?? [];
+      list.push(m.lineIndex);
+      childrenOf.set(m.parentUuid, list);
+    }
+  }
+  const cascade = new Set<number>();
+  const queue: string[] = [];
+  for (const idx of targetIndices) {
+    const uid = uuidAt.get(idx);
+    if (uid) queue.push(uid);
+  }
+  const visited = new Set<string>();
+  while (queue.length > 0) {
+    const uid = queue.pop()!;
+    if (visited.has(uid)) continue;
+    visited.add(uid);
+    for (const childIdx of childrenOf.get(uid) ?? []) {
+      cascade.add(childIdx);
+      const childUid = uuidAt.get(childIdx);
+      if (childUid) queue.push(childUid);
+    }
+  }
+  let unchecked = 0;
+  for (const idx of cascade) {
+    if (!targetIndices.has(idx)) unchecked++;
+  }
+  return unchecked;
 }
 
 export function SessionDetail({ session, projectId, projectDisplayName, onBack, onDelete, onDuplicate, onRegisterRefresh }: Props) {
@@ -296,13 +333,19 @@ export function SessionDetail({ session, projectId, projectDisplayName, onBack, 
         </div>
         </>
       )}
-      {confirmDeleteLine !== null && (
-        <DeleteConfirmDialog
-          itemName="this message"
-          onConfirm={() => handleDeleteMessage(confirmDeleteLine)}
-          onCancel={() => setConfirmDeleteLine(null)}
-        />
-      )}
+      {confirmDeleteLine !== null && (() => {
+        const extra = countUncheckedDescendants(messages, new Set([confirmDeleteLine]));
+        return (
+          <DeleteConfirmDialog
+            itemName="this message"
+            description={extra > 0
+              ? `Are you sure you want to delete this message? ${extra} dependent ${extra === 1 ? "reply" : "replies"} will also be deleted. This action cannot be undone.`
+              : undefined}
+            onConfirm={() => handleDeleteMessage(confirmDeleteLine)}
+            onCancel={() => setConfirmDeleteLine(null)}
+          />
+        );
+      })()}
       {showConfirm && (
         <DeleteConfirmDialog
           itemName={`session ${session.id.slice(0, 8)}...`}
@@ -315,15 +358,18 @@ export function SessionDetail({ session, projectId, projectDisplayName, onBack, 
           onCancel={() => setShowConfirm(false)}
         />
       )}
-      {showBatchConfirm && (
-        <DeleteConfirmDialog
-          itemName={`${count} messages`}
-          title="Delete Messages"
-          description={`Are you sure you want to delete ${count} ${count === 1 ? "message" : "messages"}? This action cannot be undone.`}
-          onConfirm={handleBatchDeleteMessages}
-          onCancel={() => setShowBatchConfirm(false)}
-        />
-      )}
+      {showBatchConfirm && (() => {
+        const extra = countUncheckedDescendants(messages, selected);
+        return (
+          <DeleteConfirmDialog
+            itemName={`${count} messages`}
+            title="Delete Messages"
+            description={`Are you sure you want to delete ${count} ${count === 1 ? "message" : "messages"}?${extra > 0 ? ` ${extra} additional dependent ${extra === 1 ? "reply" : "replies"} will also be deleted.` : ""} This action cannot be undone.`}
+            onConfirm={handleBatchDeleteMessages}
+            onCancel={() => setShowBatchConfirm(false)}
+          />
+        );
+      })()}
     </div>
   );
 }

@@ -9,6 +9,7 @@ from werkzeug.exceptions import BadRequest
 from werkzeug.exceptions import NotFound
 
 import app as app_module
+from app import _collect_cascade_indices
 from app import _encode_path
 from app import _extract_session_summary
 from app import _get_project_display_name
@@ -492,3 +493,69 @@ class TestResolveSessionFile:
         with app_module.app.test_request_context():
             with pytest.raises(NotFound):
                 _resolve_session_file("proj", "nonexistent")
+
+
+class TestCollectCascadeIndices:
+    def test_linear_chain_delete_root_removes_all_descendants(self):
+        lines = [
+            json.dumps({"uuid": "aaa", "type": "user"}),
+            json.dumps({"uuid": "bbb", "parentUuid": "aaa", "type": "assistant"}),
+            json.dumps({"uuid": "ccc", "parentUuid": "bbb", "type": "user"}),
+        ]
+        result = _collect_cascade_indices(lines, {0})
+        assert result == [0, 1, 2]
+
+    def test_mid_chain_delete_preserves_earlier_messages(self):
+        lines = [
+            json.dumps({"uuid": "aaa", "type": "user"}),
+            json.dumps({"uuid": "bbb", "parentUuid": "aaa", "type": "assistant"}),
+            json.dumps({"uuid": "ccc", "parentUuid": "bbb", "type": "user"}),
+            json.dumps({"uuid": "ddd", "parentUuid": "ccc", "type": "assistant"}),
+        ]
+        result = _collect_cascade_indices(lines, {1})
+        assert result == [1, 2, 3]
+
+    def test_branching_parent_with_two_children_cascades_both(self):
+        lines = [
+            json.dumps({"uuid": "root", "type": "user"}),
+            json.dumps({"uuid": "left", "parentUuid": "root", "type": "assistant"}),
+            json.dumps({"uuid": "right", "parentUuid": "root", "type": "assistant"}),
+            json.dumps({"uuid": "left-child", "parentUuid": "left", "type": "user"}),
+        ]
+        result = _collect_cascade_indices(lines, {0})
+        assert result == [0, 1, 2, 3]
+
+    def test_leaf_node_no_cascade(self):
+        lines = [
+            json.dumps({"uuid": "aaa", "type": "user"}),
+            json.dumps({"uuid": "bbb", "parentUuid": "aaa", "type": "assistant"}),
+        ]
+        result = _collect_cascade_indices(lines, {1})
+        assert result == [1]
+
+    def test_metadata_line_without_uuid_no_cascade(self):
+        lines = [
+            json.dumps({"type": "permission-mode"}),
+            json.dumps({"uuid": "aaa", "type": "user"}),
+            json.dumps({"uuid": "bbb", "parentUuid": "aaa", "type": "assistant"}),
+        ]
+        result = _collect_cascade_indices(lines, {0})
+        assert result == [0]
+
+    def test_overlapping_targets_parent_and_child_deduplicated(self):
+        lines = [
+            json.dumps({"uuid": "aaa", "type": "user"}),
+            json.dumps({"uuid": "bbb", "parentUuid": "aaa", "type": "assistant"}),
+            json.dumps({"uuid": "ccc", "parentUuid": "bbb", "type": "user"}),
+        ]
+        result_both = _collect_cascade_indices(lines, {0, 1})
+        result_root = _collect_cascade_indices(lines, {0})
+        assert result_both == result_root == [0, 1, 2]
+
+    def test_empty_targets_returns_empty_list(self):
+        lines = [
+            json.dumps({"uuid": "aaa", "type": "user"}),
+            json.dumps({"uuid": "bbb", "parentUuid": "aaa", "type": "assistant"}),
+        ]
+        result = _collect_cascade_indices(lines, set())
+        assert result == []

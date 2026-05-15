@@ -171,6 +171,39 @@ def _resolve_session_file(project_id: str, session_id: str) -> Path:
     return jsonl_file
 
 
+def _collect_cascade_indices(lines: list[str], target_indices: set[int]) -> list[int]:
+    uuid_at: dict[int, str] = {}
+    children_of: dict[str, list[int]] = {}
+
+    for i, line in enumerate(lines):
+        try:
+            obj = json.loads(line)
+        except (json.JSONDecodeError, ValueError):
+            continue
+        uuid_val = obj.get("uuid")
+        parent_val = obj.get("parentUuid")
+        if uuid_val:
+            uuid_at[i] = uuid_val
+        if parent_val:
+            children_of.setdefault(parent_val, []).append(i)
+
+    to_delete = set(target_indices)
+    queue = [uuid_at[idx] for idx in target_indices if idx in uuid_at]
+    visited: set[str] = set()
+    while queue:
+        uid = queue.pop()
+        if uid in visited:
+            continue
+        visited.add(uid)
+        for child_idx in children_of.get(uid, []):
+            to_delete.add(child_idx)
+            child_uid = uuid_at.get(child_idx)
+            if child_uid:
+                queue.append(child_uid)
+
+    return sorted(to_delete)
+
+
 @app.route("/api/projects")
 def list_projects():
     return jsonify(_get_projects())
@@ -283,6 +316,8 @@ def get_session(project_id: str, session_id: str):
                 continue
             message = msg.get("message", {})
             content = message.get("content", "")
+            uuid_val = msg.get("uuid")
+            parent_uuid_val = msg.get("parentUuid")
             if isinstance(content, str):
                 if content.lstrip().startswith("<"):
                     continue
@@ -291,6 +326,8 @@ def get_session(project_id: str, session_id: str):
                         {
                             "role": msg_type,
                             "lineIndex": line_index,
+                            "uuid": uuid_val,
+                            "parentUuid": parent_uuid_val,
                             "parts": [{"type": "text", "text": content}],
                         }
                     )
@@ -335,7 +372,15 @@ def get_session(project_id: str, session_id: str):
                             }
                         )
                 if parts:
-                    messages.append({"role": msg_type, "lineIndex": line_index, "parts": parts})
+                    messages.append(
+                        {
+                            "role": msg_type,
+                            "lineIndex": line_index,
+                            "uuid": uuid_val,
+                            "parentUuid": parent_uuid_val,
+                            "parts": parts,
+                        }
+                    )
     return jsonify(messages)
 
 
@@ -351,11 +396,13 @@ def delete_session_message(project_id: str, session_id: str, line_index: int):
     if line_index < 0 or line_index >= len(lines):
         abort(404, "Message not found")
 
-    del lines[line_index]
+    all_indices = _collect_cascade_indices(lines, {line_index})
+    for i in sorted(all_indices, reverse=True):
+        del lines[i]
     with open(jsonl_file, "w") as fh:
         fh.writelines(lines)
 
-    return jsonify({"deleted": line_index})
+    return jsonify({"deleted": all_indices})
 
 
 @app.route("/api/projects/<project_id>/sessions/batch-delete", methods=["POST"])
@@ -395,14 +442,15 @@ def batch_delete_session_messages(project_id: str, session_id: str):
     with open(jsonl_file) as fh:
         lines = fh.readlines()
 
-    valid_indices = [i for i in line_indices if 0 <= i < len(lines)]
-    for i in sorted(valid_indices, reverse=True):
+    valid_indices = {i for i in line_indices if 0 <= i < len(lines)}
+    all_indices = _collect_cascade_indices(lines, valid_indices)
+    for i in sorted(all_indices, reverse=True):
         del lines[i]
 
     with open(jsonl_file, "w") as fh:
         fh.writelines(lines)
 
-    return jsonify({"deleted": valid_indices})
+    return jsonify({"deleted": all_indices})
 
 
 @app.route("/api/projects/<project_id>/sessions/<session_id>", methods=["DELETE"])

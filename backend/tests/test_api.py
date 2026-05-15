@@ -745,7 +745,7 @@ class TestDeleteSessionMessageEndpoint:
         assert json.loads(lines[0])["message"]["content"] == "first"
         assert json.loads(lines[1])["message"]["content"] == "third"
 
-    def test_returns_deleted_line_index(self, client, projects_dir):
+    def test_returns_deleted_line_indices_as_list(self, client, projects_dir):
         create_project(
             projects_dir,
             "proj",
@@ -759,7 +759,7 @@ class TestDeleteSessionMessageEndpoint:
         )
         resp = client.delete("/api/projects/proj/sessions/sess/messages/1")
         assert resp.status_code == 200
-        assert resp.get_json() == {"deleted": 1}
+        assert resp.get_json() == {"deleted": [1]}
 
     def test_returns_404_for_out_of_range_line_index(self, client, projects_dir):
         create_project(
@@ -801,6 +801,181 @@ class TestDeleteSessionMessageEndpoint:
         assert len(lines) == 2
         assert json.loads(lines[0])["message"]["content"] == "beta"
         assert json.loads(lines[1])["message"]["content"] == "gamma"
+
+    def test_cascade_deletes_descendant_messages(self, client, projects_dir):
+        create_project(
+            projects_dir,
+            "proj",
+            sessions={
+                "sess": [
+                    {"type": "permission-mode"},
+                    {
+                        "type": "user",
+                        "uuid": "aaa",
+                        "parentUuid": None,
+                        "message": {"content": "Hello"},
+                    },
+                    {
+                        "type": "assistant",
+                        "uuid": "bbb",
+                        "parentUuid": "aaa",
+                        "message": {"content": "Hi"},
+                    },
+                    {
+                        "type": "user",
+                        "uuid": "ccc",
+                        "parentUuid": "bbb",
+                        "message": {"content": "Follow-up"},
+                    },
+                    {
+                        "type": "user",
+                        "uuid": "zzz",
+                        "message": {"content": "Unrelated"},
+                    },
+                ],
+            },
+        )
+        resp = client.delete("/api/projects/proj/sessions/sess/messages/1")
+        assert resp.status_code == 200
+        jsonl = projects_dir / "proj" / "sess.jsonl"
+        remaining = jsonl.read_text().splitlines()
+        assert len(remaining) == 2
+        assert json.loads(remaining[0])["type"] == "permission-mode"
+        assert json.loads(remaining[1])["message"]["content"] == "Unrelated"
+
+    def test_deleting_leaf_does_not_cascade(self, client, projects_dir):
+        create_project(
+            projects_dir,
+            "proj",
+            sessions={
+                "sess": [
+                    {
+                        "type": "user",
+                        "uuid": "aaa",
+                        "message": {"content": "Root"},
+                    },
+                    {
+                        "type": "assistant",
+                        "uuid": "bbb",
+                        "parentUuid": "aaa",
+                        "message": {"content": "Reply"},
+                    },
+                ],
+            },
+        )
+        resp = client.delete("/api/projects/proj/sessions/sess/messages/1")
+        assert resp.status_code == 200
+        jsonl = projects_dir / "proj" / "sess.jsonl"
+        remaining = jsonl.read_text().splitlines()
+        assert len(remaining) == 1
+        assert json.loads(remaining[0])["message"]["content"] == "Root"
+
+    def test_returns_list_of_deleted_indices(self, client, projects_dir):
+        create_project(
+            projects_dir,
+            "proj",
+            sessions={
+                "sess": [
+                    {
+                        "type": "user",
+                        "uuid": "aaa",
+                        "message": {"content": "Root"},
+                    },
+                    {
+                        "type": "assistant",
+                        "uuid": "bbb",
+                        "parentUuid": "aaa",
+                        "message": {"content": "Child"},
+                    },
+                ],
+            },
+        )
+        resp = client.delete("/api/projects/proj/sessions/sess/messages/0")
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert isinstance(data["deleted"], list)
+        assert data["deleted"] == [0, 1]
+
+
+class TestBatchDeleteSessionMessagesEndpoint:
+    def test_batch_delete_with_cascade(self, client, projects_dir):
+        create_project(
+            projects_dir,
+            "proj",
+            sessions={
+                "sess": [
+                    {"type": "permission-mode"},
+                    {
+                        "type": "user",
+                        "uuid": "aaa",
+                        "message": {"content": "Hello"},
+                    },
+                    {
+                        "type": "assistant",
+                        "uuid": "bbb",
+                        "parentUuid": "aaa",
+                        "message": {"content": "Hi"},
+                    },
+                    {
+                        "type": "user",
+                        "uuid": "ccc",
+                        "parentUuid": "bbb",
+                        "message": {"content": "Follow-up"},
+                    },
+                ],
+            },
+        )
+        resp = client.post(
+            "/api/projects/proj/sessions/sess/messages/batch-delete",
+            json={"lineIndices": [1]},
+        )
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["deleted"] == [1, 2, 3]
+        jsonl = projects_dir / "proj" / "sess.jsonl"
+        remaining = jsonl.read_text().splitlines()
+        assert len(remaining) == 1
+        assert json.loads(remaining[0])["type"] == "permission-mode"
+
+    def test_batch_delete_without_uuid(self, client, projects_dir):
+        create_project(
+            projects_dir,
+            "proj",
+            sessions={
+                "sess": [
+                    {"type": "user", "message": {"content": "first"}},
+                    {"type": "user", "message": {"content": "second"}},
+                    {"type": "user", "message": {"content": "third"}},
+                ],
+            },
+        )
+        resp = client.post(
+            "/api/projects/proj/sessions/sess/messages/batch-delete",
+            json={"lineIndices": [0, 2]},
+        )
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert sorted(data["deleted"]) == [0, 2]
+        jsonl = projects_dir / "proj" / "sess.jsonl"
+        remaining = jsonl.read_text().splitlines()
+        assert len(remaining) == 1
+        assert json.loads(remaining[0])["message"]["content"] == "second"
+
+    def test_returns_400_for_empty_list(self, client, projects_dir):
+        create_project(
+            projects_dir,
+            "proj",
+            sessions={
+                "sess": [
+                    {"type": "user", "message": {"content": "hi"}},
+                ],
+            },
+        )
+        resp = client.post(
+            "/api/projects/proj/sessions/sess/messages/batch-delete",
+            json={"lineIndices": []},
+        )
+        assert resp.status_code == 400
 
 
 class TestTreeEndpoint:
