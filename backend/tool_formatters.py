@@ -46,7 +46,7 @@ def _format_misc(question_dict):
     extra = {k: v for k, v in question_dict.items() if k not in _KNOWN_QUESTION_KEYS}
     if not extra:
         return []
-    lines = ["", "### Misc."]
+    lines = ["", "## Misc."]
     for k, v in extra.items():
         lines.append(f"- {k}: {json.dumps(v)}")
     return lines
@@ -61,8 +61,7 @@ def format_ask_user_question(input_dict: dict) -> str:
     for i, q in enumerate(questions, 1):
         lines = []
         header = q.get("header", "")
-        lines.append(f"# Questions: {header}")
-        lines.append(f"## Q{i}: {q.get('question', '')}")
+        lines.append(f"# Q{i}({header}): {q.get('question', '')}")
         if "options" in q:
             lines.extend(_format_options(q["options"]))
         lines.extend(_format_misc(q))

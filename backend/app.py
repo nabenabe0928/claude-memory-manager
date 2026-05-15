@@ -175,6 +175,9 @@ def _resolve_session_file(project_id: str, session_id: str) -> Path:
 
 
 def _collect_cascade_indices(lines: list[str], target_indices: set[int]) -> list[int]:
+    if not target_indices:
+        return []
+
     uuid_at: dict[int, str] = {}
     children_of: dict[str, list[int]] = defaultdict(list)
 
