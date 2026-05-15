@@ -7,6 +7,9 @@
   border-radius: 6px;
   margin-bottom: 8px;
   font-size: 13px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .batch-toolbar .select-all-label {
