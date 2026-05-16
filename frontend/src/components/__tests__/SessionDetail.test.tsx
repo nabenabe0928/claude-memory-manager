@@ -215,13 +215,28 @@ describe("SessionDetail", () => {
       expect(screen.getByRole("button", { name: "MD" })).toBeInTheDocument();
     });
 
-    it("renders text in pre tag by default", async () => {
+    it("renders markdown by default", async () => {
       mockFetchWith(markdownMessages);
       renderDetail();
 
       await waitFor(() => {
-        expect(screen.getByText(/Some \*\*bold\*\* text/)).toBeInTheDocument();
+        expect(document.querySelector(".markdown-body")).toBeInTheDocument();
       });
+
+      expect(document.querySelector(".message-text")).not.toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "Heading" })).toBeInTheDocument();
+    });
+
+    it("renders raw text when MD button is clicked", async () => {
+      mockFetchWith(markdownMessages);
+      const user = userEvent.setup();
+      renderDetail();
+
+      await waitFor(() => {
+        expect(document.querySelector(".markdown-body")).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole("button", { name: "MD" }));
 
       const pre = document.querySelector(".message-text");
       expect(pre).toBeInTheDocument();
@@ -229,38 +244,23 @@ describe("SessionDetail", () => {
       expect(document.querySelector(".markdown-body")).not.toBeInTheDocument();
     });
 
-    it("renders markdown when MD button is clicked", async () => {
+    it("toggles back to markdown on second click", async () => {
       mockFetchWith(markdownMessages);
       const user = userEvent.setup();
       renderDetail();
 
       await waitFor(() => {
-        expect(screen.getByText(/Some \*\*bold\*\* text/)).toBeInTheDocument();
-      });
-
-      await user.click(screen.getByRole("button", { name: "MD" }));
-
-      expect(document.querySelector(".markdown-body")).toBeInTheDocument();
-      expect(document.querySelector(".message-text")).not.toBeInTheDocument();
-      expect(screen.getByRole("heading", { name: "Heading" })).toBeInTheDocument();
-    });
-
-    it("toggles back to raw text on second click", async () => {
-      mockFetchWith(markdownMessages);
-      const user = userEvent.setup();
-      renderDetail();
-
-      await waitFor(() => {
-        expect(screen.getByText(/Some \*\*bold\*\* text/)).toBeInTheDocument();
+        expect(document.querySelector(".markdown-body")).toBeInTheDocument();
       });
 
       const mdButton = screen.getByRole("button", { name: "MD" });
       await user.click(mdButton);
-      expect(document.querySelector(".markdown-body")).toBeInTheDocument();
-
-      await user.click(mdButton);
       expect(document.querySelector(".markdown-body")).not.toBeInTheDocument();
       expect(document.querySelector(".message-text")).toBeInTheDocument();
+
+      await user.click(mdButton);
+      expect(document.querySelector(".markdown-body")).toBeInTheDocument();
+      expect(document.querySelector(".message-text")).not.toBeInTheDocument();
     });
 
     it("toggles messages independently", async () => {
@@ -276,11 +276,11 @@ describe("SessionDetail", () => {
       await user.click(mdButtons[0]);
 
       const messages = document.querySelectorAll(".message");
-      expect(messages[0].querySelector(".markdown-body")).toBeInTheDocument();
-      expect(messages[1].querySelector(".markdown-body")).not.toBeInTheDocument();
+      expect(messages[0].querySelector(".markdown-body")).not.toBeInTheDocument();
+      expect(messages[1].querySelector(".markdown-body")).toBeInTheDocument();
     });
 
-    it("applies active class to MD button when enabled", async () => {
+    it("has active class on MD button by default and removes on click", async () => {
       mockFetchWith(defaultMessages);
       const user = userEvent.setup();
       renderDetail();
@@ -290,10 +290,10 @@ describe("SessionDetail", () => {
       });
 
       const mdButton = screen.getAllByRole("button", { name: "MD" })[0];
-      expect(mdButton.className).not.toContain("md-btn-active");
+      expect(mdButton.className).toContain("md-btn-active");
 
       await user.click(mdButton);
-      expect(mdButton.className).toContain("md-btn-active");
+      expect(mdButton.className).not.toContain("md-btn-active");
     });
   });
 

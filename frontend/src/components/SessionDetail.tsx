@@ -142,18 +142,9 @@ export function SessionDetail({ session, projectId, projectDisplayName, onBack, 
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [copiedResume, setCopiedResume] = useState(false);
   const [confirmDeleteLine, setConfirmDeleteLine] = useState<number | null>(null);
-  const [mdRendered, setMdRendered] = useState<Set<number>>(new Set());
+  const { selected: mdDisabled, toggle: toggleMarkdown, clear: clearMdDisabled } = useSelection<number>();
   const { selected, toggle, toggleAll, clear, isAllSelected, count } = useSelection<number>();
   const [showBatchConfirm, setShowBatchConfirm] = useState(false);
-
-  const toggleMarkdown = (index: number) => {
-    setMdRendered((prev) => {
-      const next = new Set(prev);
-      if (next.has(index)) next.delete(index);
-      else next.add(index);
-      return next;
-    });
-  };
 
   const resumeCommand = projectDisplayName
     ? `cd ${projectDisplayName} && claude --resume ${session.id}`
@@ -180,7 +171,7 @@ export function SessionDetail({ session, projectId, projectDisplayName, onBack, 
       .then((r) => {
         if (!r.ok) return;
         setConfirmDeleteLine(null);
-        setMdRendered(new Set());
+        clearMdDisabled();
         return fetch(`/api/projects/${projectId}/sessions/${session.id}`);
       })
       .then((r) => r?.json())
@@ -199,7 +190,7 @@ export function SessionDetail({ session, projectId, projectDisplayName, onBack, 
         if (!r.ok) return;
         clear();
         setShowBatchConfirm(false);
-        setMdRendered(new Set());
+        clearMdDisabled();
         return fetch(`/api/projects/${projectId}/sessions/${session.id}`);
       })
       .then((r) => r?.json())
@@ -212,7 +203,7 @@ export function SessionDetail({ session, projectId, projectDisplayName, onBack, 
     const r = await fetch(`/api/projects/${projectId}/sessions/${session.id}`);
     const data = await r.json();
     setMessages(data);
-    setMdRendered(new Set());
+    clearMdDisabled();
   }, [projectId, session.id]);
 
   useEffect(() => {
@@ -224,7 +215,7 @@ export function SessionDetail({ session, projectId, projectDisplayName, onBack, 
     fetch(`/api/projects/${projectId}/sessions/${session.id}`)
       .then((r) => r.json())
       .then((data) => {
-        setMdRendered(new Set());
+        clearMdDisabled();
         setMessages(data);
         setLoading(false);
       });
@@ -303,8 +294,8 @@ export function SessionDetail({ session, projectId, projectDisplayName, onBack, 
                 <div className="message-actions">
                   {m.parts.some((p) => p.type === "text" || p.detail) && (
                     <button
-                      className={`msg-action-btn md-btn${mdRendered.has(i) ? " md-btn-active" : ""}`}
-                      onClick={() => toggleMarkdown(i)}
+                      className={`msg-action-btn md-btn${!mdDisabled.has(m.lineIndex) ? " md-btn-active" : ""}`}
+                      onClick={() => toggleMarkdown(m.lineIndex)}
                     >
                       MD
                     </button>
@@ -325,7 +316,7 @@ export function SessionDetail({ session, projectId, projectDisplayName, onBack, 
               </div>
               <div className="message-body">
                 {m.parts.map((p, j) => (
-                  <MessagePartView key={j} part={p} isMdRendered={mdRendered.has(i)} />
+                  <MessagePartView key={j} part={p} isMdRendered={!mdDisabled.has(m.lineIndex)} />
                 ))}
               </div>
             </div>
