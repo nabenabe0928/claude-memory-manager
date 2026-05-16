@@ -143,6 +143,7 @@ export function SessionDetail({ session, projectId, projectDisplayName, onBack, 
   const [copiedResume, setCopiedResume] = useState(false);
   const [confirmDeleteLine, setConfirmDeleteLine] = useState<number | null>(null);
   const { selected: mdDisabled, toggle: toggleMarkdown, clear: clearMdDisabled } = useSelection<number>();
+  const { selected: collapsed, toggle: toggleCollapse } = useSelection<number>();
   const { selected, toggle, toggleAll, clear, isAllSelected, count } = useSelection<number>();
   const [showBatchConfirm, setShowBatchConfirm] = useState(false);
 
@@ -289,6 +290,13 @@ export function SessionDetail({ session, projectId, projectDisplayName, onBack, 
                     checked={selected.has(m.lineIndex)}
                     onChange={() => toggle(m.lineIndex)}
                   />
+                  <button
+                    className="collapse-toggle"
+                    onClick={() => toggleCollapse(m.lineIndex)}
+                    aria-label={collapsed.has(m.lineIndex) ? "Expand message" : "Collapse message"}
+                  >
+                    <span className="collapse-arrow">{collapsed.has(m.lineIndex) ? "▶" : "▼"}</span>
+                  </button>
                   <span className="message-role">{m.role}</span>
                 </div>
                 <div className="message-actions">
@@ -314,11 +322,13 @@ export function SessionDetail({ session, projectId, projectDisplayName, onBack, 
                   </button>
                 </div>
               </div>
-              <div className="message-body">
-                {m.parts.map((p, j) => (
-                  <MessagePartView key={j} part={p} isMdRendered={!mdDisabled.has(m.lineIndex)} />
-                ))}
-              </div>
+              {!collapsed.has(m.lineIndex) && (
+                <div className="message-body">
+                  {m.parts.map((p, j) => (
+                    <MessagePartView key={j} part={p} isMdRendered={!mdDisabled.has(m.lineIndex)} />
+                  ))}
+                </div>
+              )}
             </div>
           ))}
         </div>
