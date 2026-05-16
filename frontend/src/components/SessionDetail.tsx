@@ -2,7 +2,7 @@ import { memo, useCallback, useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
-import "highlight.js/styles/github.css";
+import "./highlight-theme.css";
 import { useSelection } from "../hooks/useSelection";
 import { DeleteConfirmDialog } from "./DeleteConfirmDialog";
 import { CopyPathButton } from "./CopyPathButton";
