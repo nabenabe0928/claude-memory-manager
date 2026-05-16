@@ -94,7 +94,7 @@ def format_edit(input_dict: dict) -> str:
     header = f"- Edit: {file_path}\n- Replace All: {str(replace_all).lower()}"
     diff_text = "".join(diff)
 
-    return f"{header}\n\n{diff_text}"
+    return f"{header}\n```diff\n{diff_text}\n```"
 
 
 def format_bash(input_dict: dict) -> str:
