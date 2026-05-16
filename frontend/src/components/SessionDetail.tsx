@@ -205,7 +205,7 @@ export function SessionDetail({ session, projectId, projectDisplayName, onBack, 
     const data = await r.json();
     setMessages(data);
     clearMdDisabled();
-  }, [projectId, session.id]);
+  }, [projectId, session.id, clearMdDisabled]);
 
   useEffect(() => {
     onRegisterRefresh?.(handleRefresh);
@@ -220,7 +220,7 @@ export function SessionDetail({ session, projectId, projectDisplayName, onBack, 
         setMessages(data);
         setLoading(false);
       });
-  }, [projectId, session.id]);
+  }, [projectId, session.id, clearMdDisabled]);
 
   return (
     <div className="session-detail">
