@@ -15,6 +15,7 @@ function renderList(overrides: Partial<ListProps> = {}) {
     onSelect: vi.fn(),
     onBack: vi.fn(),
     onRefresh: vi.fn(),
+    onBatchDelete: vi.fn(),
     ...overrides,
   };
   return { props, ...render(<MemoryList {...props} />) };

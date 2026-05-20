@@ -1,20 +1,20 @@
 {
   "hooks": {
-    "PostToolUse": [
+    "Stop": [
       {
         "matcher": "Write|Edit",
         "hooks": [
           {
             "type": "command",
-            "command": "jq -r '.tool_input.file_path // .tool_response.filePath' | { read -r f; echo \"$f\" | grep -q 'backend/' && cd /Users/shuhei.watanabe/private/claude-memory-manager/backend && uv run --with ruff ruff check --fix . && uv run --with ruff ruff format . && uv run pytest; } 2>/dev/null || true",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/formats.sh\"",
             "timeout": 120,
-            "statusMessage": "Running backend lint & tests..."
+            "statusMessage": "Running linters..."
           },
           {
             "type": "command",
-            "command": "jq -r '.tool_input.file_path // .tool_response.filePath' | { read -r f; echo \"$f\" | grep -q 'frontend/' && cd /Users/shuhei.watanabe/private/claude-memory-manager/frontend && npm run lint && npm run test; } 2>/dev/null || true",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/tests.sh\"",
             "timeout": 120,
-            "statusMessage": "Running frontend lint & tests..."
+            "statusMessage": "Running tests..."
           }
         ]
       }

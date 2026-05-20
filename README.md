@@ -51,8 +51,8 @@ The Vite dev server proxies `/api` requests to the Flask backend automatically.
 ## Testing & Formatting
 
 ```bash
-./tests.sh
-./formats.sh
+bash .claude/tests.sh
+bash .claude/formats.sh
 ```
 
 ## How It Works
