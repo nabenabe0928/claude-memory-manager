@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { formatSize } from "../utils";
+import { formatPercent, formatSize, NO_VALUE } from "../utils";
 
 describe("formatSize", () => {
   it.each([
@@ -21,4 +21,28 @@ describe("formatSize", () => {
       expect(formatSize(bytes)).toBe(expected);
     },
   );
+});
+
+describe("formatPercent", () => {
+  it.each([
+    [0, "0.0%"],
+    [0.9737, "97.4%"],
+    [0.5, "50.0%"],
+    [1, "100.0%"],
+    [0.00004, "0.0%"],
+  ] as [number, string][])(
+    "returns %j for %j",
+    (ratio, expected) => {
+      expect(formatPercent(ratio)).toBe(expected);
+    },
+  );
+
+  it("returns the placeholder for null", () => {
+    expect(formatPercent(null)).toBe(NO_VALUE);
+  });
+
+  it("returns the placeholder for non-finite values", () => {
+    expect(formatPercent(NaN)).toBe(NO_VALUE);
+    expect(formatPercent(Infinity)).toBe(NO_VALUE);
+  });
 });

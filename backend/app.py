@@ -13,6 +13,7 @@ from flask import request
 from flask_cors import CORS
 import frontmatter
 
+from cache_stats import build_cache_stats
 from tool_formatters import format_tool_input
 
 
@@ -388,6 +389,12 @@ def get_session(project_id: str, session_id: str):
                         }
                     )
     return jsonify(messages)
+
+
+@app.route("/api/projects/<project_id>/sessions/<session_id>/cache-stats")
+def get_session_cache_stats(project_id: str, session_id: str):
+    jsonl_file = _resolve_session_file(project_id, session_id)
+    return jsonify(build_cache_stats(jsonl_file))
 
 
 @app.route(

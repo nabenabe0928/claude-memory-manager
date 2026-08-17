@@ -6,6 +6,8 @@ from pathlib import Path
 
 import pytest
 from testing_utils import create_project
+from testing_utils import create_subagent
+from testing_utils import make_assistant_record
 
 
 @pytest.fixture()
@@ -585,6 +587,225 @@ class TestGetSessionEndpoint:
         resp = client.get("/api/projects/proj/sessions/sess")
         data = resp.get_json()
         assert data[0]["parts"][0]["label"] == "[Tool: ?]"
+
+
+class TestSessionCacheStatsEndpoint:
+    def test_returns_per_turn_and_session_stats(self, client, projects_dir):
+        create_project(
+            projects_dir,
+            "proj",
+            sessions={
+                "sess": [
+                    make_assistant_record("r1", "m1"),
+                    make_assistant_record("r2", "m2", timestamp="2026-08-17T00:01:00Z"),
+                ],
+            },
+        )
+        resp = client.get("/api/projects/proj/sessions/sess/cache-stats")
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["skipped"] == 0
+        assert data["session"] == {
+            "turnCount": 2,
+            "cacheRead": 200,
+            "cacheCreation": 20,
+            "uncached": 0,
+            "output": 0,
+            "hitRate": pytest.approx(200 / 220),
+        }
+        assert data["turns"][1] == {
+            "cacheRead": 100,
+            "cacheCreation": 10,
+            "uncached": 0,
+            "output": 0,
+            "hitRate": pytest.approx(100 / 110),
+            "gapS": 60.0,
+            "ttlS": 300,
+            "model": "claude-opus-5",
+            "cause": "-",
+            "timestamp": "2026-08-17T00:01:00Z",
+        }
+
+    def test_empty_session_returns_no_turns_and_null_hit_rate(self, client, projects_dir):
+        create_project(projects_dir, "proj", sessions={"sess": []})
+        resp = client.get("/api/projects/proj/sessions/sess/cache-stats")
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["turns"] == []
+        assert data["session"]["hitRate"] is None
+        assert data["skipped"] == 0
+
+    def test_duplicate_lines_of_one_request_are_counted_once(self, client, projects_dir):
+        create_project(
+            projects_dir,
+            "proj",
+            sessions={
+                "sess": [
+                    make_assistant_record("r1", "m1"),
+                    make_assistant_record("r1", "m1"),
+                ],
+            },
+        )
+        resp = client.get("/api/projects/proj/sessions/sess/cache-stats")
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["session"]["turnCount"] == 1
+        assert data["session"]["cacheRead"] == 100
+
+    def test_record_without_any_request_key_is_reported_as_skipped(
+        self,
+        client,
+        projects_dir,
+    ):
+        create_project(
+            projects_dir,
+            "proj",
+            sessions={"sess": [make_assistant_record(None, None)]},
+        )
+        resp = client.get("/api/projects/proj/sessions/sess/cache-stats")
+        data = resp.get_json()
+        assert data["turns"] == []
+        assert data["skipped"] == 1
+
+    def test_ttl_expiry_cause_carries_no_interpolated_gap(self, client, projects_dir):
+        create_project(
+            projects_dir,
+            "proj",
+            sessions={
+                "sess": [
+                    make_assistant_record("r1", "m1"),
+                    make_assistant_record(
+                        "r2",
+                        "m2",
+                        timestamp="2026-08-17T00:20:00Z",
+                        usage={
+                            "cache_read_input_tokens": 0,
+                            "cache_creation_input_tokens": 9999,
+                            "cache_creation": {"ephemeral_5m_input_tokens": 9999},
+                        },
+                    ),
+                ],
+            },
+        )
+        resp = client.get("/api/projects/proj/sessions/sess/cache-stats")
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["turns"][1]["cause"] == "TTL expiry"
+        assert data["turns"][1]["gapS"] == 1200.0
+        assert data["turns"][1]["ttlS"] == 300
+
+    def test_skips_malformed_json_lines(self, client, projects_dir):
+        proj = create_project(projects_dir, "proj")
+        jsonl = proj / "sess.jsonl"
+        jsonl.write_text("not valid json\n" + json.dumps(make_assistant_record("r1", "m1")) + "\n")
+        resp = client.get("/api/projects/proj/sessions/sess/cache-stats")
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["session"]["turnCount"] == 1
+        assert data["skipped"] == 0
+
+    def test_returns_404_for_nonexistent_session(self, client, projects_dir):
+        (projects_dir / "proj").mkdir()
+        resp = client.get("/api/projects/proj/sessions/missing/cache-stats")
+        assert resp.status_code == 404
+
+    def test_returns_404_for_nonexistent_project(self, client, projects_dir):
+        resp = client.get("/api/projects/nonexistent/sessions/sess/cache-stats")
+        assert resp.status_code == 404
+
+    def test_path_traversal_in_session_id_does_not_leak(self, client, projects_dir):
+        (projects_dir / "proj").mkdir()
+        resp = client.get("/api/projects/proj/sessions/..%2F..%2Fetc/cache-stats")
+        assert resp.status_code in (400, 404)
+
+    def test_session_without_a_companion_dir_reports_no_subagents(self, client, projects_dir):
+        sessions = {"sess": [make_assistant_record("r1", "m1")]}
+        create_project(projects_dir, "proj", sessions=sessions)
+        resp = client.get("/api/projects/proj/sessions/sess/cache-stats")
+        assert resp.status_code == 200
+        assert resp.get_json()["subagents"] == []
+
+    def test_subagents_are_labeled_ordered_and_scored_independently(self, client, projects_dir):
+        project_dir = create_project(
+            projects_dir,
+            "proj",
+            sessions={"sess": [make_assistant_record("r1", "m1")]},
+        )
+        create_subagent(
+            project_dir,
+            "sess",
+            "late",
+            [make_assistant_record("ar1", "am1", timestamp="2026-08-17T00:09:00Z")],
+            meta={"agentType": "python-style-reviewer", "description": "Review backend style"},
+        )
+        create_subagent(
+            project_dir,
+            "sess",
+            "early",
+            [
+                make_assistant_record("br1", "bm1", timestamp="2026-08-17T00:02:00Z"),
+                make_assistant_record("br2", "bm2", timestamp="2026-08-17T00:03:00Z"),
+            ],
+            # No meta file: the frontend gets null labels and falls back to the agent id.
+            meta=None,
+        )
+        resp = client.get("/api/projects/proj/sessions/sess/cache-stats")
+        assert resp.status_code == 200
+        subagents = resp.get_json()["subagents"]
+
+        assert [a["agentId"] for a in subagents] == ["early", "late"]
+        assert (subagents[0]["agentType"], subagents[0]["description"]) == (None, None)
+        assert subagents[1]["agentType"] == "python-style-reviewer"
+        assert subagents[1]["description"] == "Review backend style"
+        # Each agent is its own cache lifeline, so each opens on a session-start miss.
+        assert [a["turns"][0]["cause"] for a in subagents] == ["session start", "session start"]
+        assert subagents[0]["session"]["turnCount"] == 2
+        assert subagents[1]["skipped"] == 0
+
+    def test_subagent_turns_stay_out_of_the_main_session_numbers(self, client, projects_dir):
+        project_dir = create_project(
+            projects_dir,
+            "proj",
+            sessions={
+                "sess": [
+                    make_assistant_record("r1", "m1"),
+                    # Claude Code inlines the subagent's records here too; they must not
+                    # count towards the main session.
+                    make_assistant_record("ar1", "am1", is_sidechain=True),
+                ],
+            },
+        )
+        create_subagent(project_dir, "sess", "a1", [make_assistant_record("ar1", "am1")])
+        resp = client.get("/api/projects/proj/sessions/sess/cache-stats")
+        data = resp.get_json()
+        assert data["session"] == {
+            "turnCount": 1,
+            "cacheRead": 100,
+            "cacheCreation": 10,
+            "uncached": 0,
+            "output": 0,
+            "hitRate": pytest.approx(100 / 110),
+        }
+        assert data["subagents"][0]["session"]["turnCount"] == 1
+
+    def test_malformed_agent_meta_json_does_not_break_the_response(self, client, projects_dir):
+        project_dir = create_project(
+            projects_dir,
+            "proj",
+            sessions={"sess": [make_assistant_record("r1", "m1")]},
+        )
+        create_subagent(
+            project_dir,
+            "sess",
+            "a1",
+            [make_assistant_record("ar1", "am1")],
+            meta='{"agentType": "reviewer"',
+        )
+        resp = client.get("/api/projects/proj/sessions/sess/cache-stats")
+        assert resp.status_code == 200
+        agent = resp.get_json()["subagents"][0]
+        assert (agent["agentType"], agent["description"]) == (None, None)
+        assert agent["session"]["turnCount"] == 1
 
 
 class TestDuplicateSessionEndpoint:

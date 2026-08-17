@@ -1,4 +1,14 @@
-import type { Project, Memory, Session, TreeChild, TreeResponse } from "../types";
+import type {
+  CacheStats,
+  CacheStatsAgent,
+  CacheStatsSession,
+  CacheStatsTurn,
+  Project,
+  Memory,
+  Session,
+  TreeChild,
+  TreeResponse,
+} from "../types";
 
 export function makeProject(overrides: Partial<Project> = {}): Project {
   return {
@@ -32,6 +42,58 @@ export function makeSession(overrides: Partial<Session> = {}): Session {
     modifiedAt: "2025-01-15T10:30:00Z",
     sizeBytes: 2048,
     hasCompanionDir: false,
+    ...overrides,
+  };
+}
+
+export function makeCacheStatsTurn(overrides: Partial<CacheStatsTurn> = {}): CacheStatsTurn {
+  return {
+    cacheRead: 37000,
+    cacheCreation: 1000,
+    uncached: 0,
+    output: 500,
+    hitRate: 0.9737,
+    gapS: 12.5,
+    ttlS: 300,
+    model: "claude-sonnet-4",
+    cause: "-",
+    timestamp: "2025-01-15T10:30:00Z",
+    ...overrides,
+  };
+}
+
+export function makeCacheStatsSession(
+  overrides: Partial<CacheStatsSession> = {},
+): CacheStatsSession {
+  return {
+    turnCount: 3,
+    cacheRead: 37000,
+    cacheCreation: 1000,
+    uncached: 0,
+    output: 500,
+    hitRate: 0.9737,
+    ...overrides,
+  };
+}
+
+export function makeCacheStatsAgent(overrides: Partial<CacheStatsAgent> = {}): CacheStatsAgent {
+  return {
+    agentId: "a04914af8a35090c0",
+    agentType: "python-style-reviewer",
+    description: "Review backend Python style",
+    turns: [makeCacheStatsTurn()],
+    session: makeCacheStatsSession(),
+    skipped: 0,
+    ...overrides,
+  };
+}
+
+export function makeCacheStats(overrides: Partial<CacheStats> = {}): CacheStats {
+  return {
+    turns: [makeCacheStatsTurn()],
+    session: makeCacheStatsSession(),
+    skipped: 0,
+    subagents: [],
     ...overrides,
   };
 }

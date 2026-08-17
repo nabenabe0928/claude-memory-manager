@@ -16,7 +16,7 @@ interface KeyboardShortcutConfig {
   onToggleTheme: () => void;
 }
 
-function isEditableTarget(e: KeyboardEvent): boolean {
+export function isEditableTarget(e: KeyboardEvent): boolean {
   const el = e.target;
   if (!(el instanceof HTMLElement)) return false;
   const tag = el.tagName;

@@ -1,14 +1,16 @@
-import { memo, useCallback, useEffect, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
 import "./highlight-theme.css";
 import { useSelection } from "../hooks/useSelection";
+import { isEditableTarget } from "../hooks/useKeyboardShortcuts";
+import { CacheStatsPanel } from "./CacheStatsPanel";
 import { DeleteConfirmDialog } from "./DeleteConfirmDialog";
 import { CopyPathButton } from "./CopyPathButton";
 import { RefreshButton } from "./RefreshButton";
-import type { Session } from "../types";
-import { modKey, altKey } from "../utils";
+import type { CacheStats, CacheStatsAgent, CacheStatsSession, CacheStatsTurn, Session } from "../types";
+import { modKey, altKey, formatPercent } from "../utils";
 import "./markdown.css";
 import "./SessionDetail.css";
 import "./BatchToolbar.css";
@@ -40,6 +42,9 @@ interface Props {
 
 const REMARK_PLUGINS = [remarkGfm];
 const REHYPE_PLUGINS = [rehypeHighlight];
+// Matched against e.code: Alt+letter produces special characters on macOS, so e.key is unusable.
+const CACHE_STATS_SHORTCUT_CODE = "KeyC";
+const CACHE_STATS_SHORTCUT_LABEL = "C";
 
 function CollapsiblePart({ part, isMdRendered }: { part: MessagePart; isMdRendered: boolean }) {
   const [expanded, setExpanded] = useState(false);
@@ -90,6 +95,34 @@ const MessagePartView = memo(function MessagePartView({ part, isMdRendered }: { 
   return <CollapsiblePart part={part} isMdRendered={isMdRendered} />;
 });
 
+function isCacheRollup(value: unknown): value is CacheStatsSession {
+  if (!value || typeof value !== "object") return false;
+  const hitRate = (value as CacheStatsSession).hitRate;
+  return hitRate === null || typeof hitRate === "number";
+}
+
+function isCacheTurnList(value: unknown): value is CacheStatsTurn[] {
+  return Array.isArray(value) && value.every((turn) => typeof turn?.cause === "string");
+}
+
+function isCacheStatsAgent(value: unknown): value is CacheStatsAgent {
+  const agent = value as CacheStatsAgent | null;
+  return (
+    typeof agent?.agentId === "string" && isCacheRollup(agent.session) && isCacheTurnList(agent.turns)
+  );
+}
+
+// The endpoint is best-effort: anything that does not match the contract is treated as "no stats".
+function parseCacheStats(data: unknown): CacheStats | null {
+  const stats = data as CacheStats | null;
+  if (!isCacheRollup(stats?.session)) return null;
+  if (!isCacheTurnList(stats?.turns)) return null;
+  // `subagents` is additive: an older or degraded backend omits it, and absence means "none".
+  const subagents = (stats as { subagents?: unknown }).subagents ?? [];
+  if (!Array.isArray(subagents) || !subagents.every(isCacheStatsAgent)) return null;
+  return { ...stats, subagents };
+}
+
 function getTextForCopy(m: Message) {
   return m.parts
     .map((p) => {
@@ -137,10 +170,21 @@ function countUncheckedDescendants(messages: Message[], targetIndices: Set<numbe
 
 export function SessionDetail({ session, projectId, projectDisplayName, onBack, onDelete, onDuplicate, onRegisterRefresh }: Props) {
   const [messages, setMessages] = useState<Message[]>([]);
+  const [cacheStats, setCacheStats] = useState<CacheStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [showConfirm, setShowConfirm] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [copiedResume, setCopiedResume] = useState(false);
+  const [showCacheStats, setShowCacheStats] = useState(false);
+  // Reset cache-stats state during render on session switch (App renders SessionDetail without a
+  // key, so state would otherwise leak from the previous session until its fetch resolves).
+  const [statsSessionId, setStatsSessionId] = useState(session.id);
+  const activeSessionIdRef = useRef(session.id);
+  if (statsSessionId !== session.id) {
+    setStatsSessionId(session.id);
+    setCacheStats(null);
+    setShowCacheStats(false);
+  }
   const [confirmDeleteLine, setConfirmDeleteLine] = useState<number | null>(null);
   const { selected: mdDisabled, toggle: toggleMarkdown, clear: clearMdDisabled } = useSelection<number>();
   const { selected: collapsed, toggle: toggleCollapse } = useSelection<number>();
@@ -165,6 +209,20 @@ export function SessionDetail({ session, projectId, projectDisplayName, onBack, 
     });
   };
 
+  const loadCacheStats = useCallback((): Promise<void> => {
+    // A slow response must not overwrite the stats of a session switched to in the meantime.
+    const requestedSessionId = session.id;
+    const isCurrent = () => activeSessionIdRef.current === requestedSessionId;
+    return fetch(`/api/projects/${projectId}/sessions/${session.id}/cache-stats`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (isCurrent()) setCacheStats(parseCacheStats(data));
+      })
+      .catch(() => {
+        if (isCurrent()) setCacheStats(null);
+      });
+  }, [projectId, session.id]);
+
   const handleDeleteMessage = (lineIndex: number) => {
     fetch(`/api/projects/${projectId}/sessions/${session.id}/messages/${lineIndex}`, {
       method: "DELETE",
@@ -177,7 +235,9 @@ export function SessionDetail({ session, projectId, projectDisplayName, onBack, 
       })
       .then((r) => r?.json())
       .then((data) => {
-        if (data) setMessages(data);
+        if (!data) return;
+        setMessages(data);
+        void loadCacheStats();
       });
   };
 
@@ -196,7 +256,9 @@ export function SessionDetail({ session, projectId, projectDisplayName, onBack, 
       })
       .then((r) => r?.json())
       .then((data) => {
-        if (data) setMessages(data);
+        if (!data) return;
+        setMessages(data);
+        void loadCacheStats();
       });
   };
 
@@ -205,7 +267,21 @@ export function SessionDetail({ session, projectId, projectDisplayName, onBack, 
     const data = await r.json();
     setMessages(data);
     clearMdDisabled();
-  }, [projectId, session.id, clearMdDisabled]);
+    await loadCacheStats();
+  }, [projectId, session.id, clearMdDisabled, loadCacheStats]);
+
+  // Local listener instead of useKeyboardShortcuts: the panel state lives in this component.
+  const hasCacheStats = cacheStats !== null;
+  useEffect(() => {
+    if (!hasCacheStats) return;
+    const handler = (e: KeyboardEvent) => {
+      if (!e.altKey || e.code !== CACHE_STATS_SHORTCUT_CODE || isEditableTarget(e)) return;
+      e.preventDefault();
+      setShowCacheStats((shown) => !shown);
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [hasCacheStats]);
 
   useEffect(() => {
     onRegisterRefresh?.(handleRefresh);
@@ -213,6 +289,7 @@ export function SessionDetail({ session, projectId, projectDisplayName, onBack, 
   }, [handleRefresh, onRegisterRefresh]);
 
   useEffect(() => {
+    activeSessionIdRef.current = session.id;
     fetch(`/api/projects/${projectId}/sessions/${session.id}`)
       .then((r) => r.json())
       .then((data) => {
@@ -220,7 +297,8 @@ export function SessionDetail({ session, projectId, projectDisplayName, onBack, 
         setMessages(data);
         setLoading(false);
       });
-  }, [projectId, session.id, clearMdDisabled]);
+    void loadCacheStats();
+  }, [projectId, session.id, clearMdDisabled, loadCacheStats]);
 
   return (
     <div className="session-detail">
@@ -230,6 +308,17 @@ export function SessionDetail({ session, projectId, projectDisplayName, onBack, 
         </button>
         <div className="detail-actions">
           <RefreshButton onRefresh={handleRefresh} />
+          {cacheStats && (
+            <button
+              className={`action-btn cache-stats-btn${showCacheStats ? " cache-stats-btn-active" : ""}`}
+              onClick={() => setShowCacheStats((shown) => !shown)}
+              aria-expanded={showCacheStats}
+              aria-controls="cache-stats-panel"
+              title={`${showCacheStats ? "Hide" : "Show"} per-turn cache stats (Toggle by ${altKey}+${CACHE_STATS_SHORTCUT_LABEL})`}
+            >
+              Cache stats
+            </button>
+          )}
           <button
             className="action-btn copy-path-btn"
             onClick={handleCopyResume}
@@ -256,7 +345,13 @@ export function SessionDetail({ session, projectId, projectDisplayName, onBack, 
       <p className="session-detail-meta">
         {projectDisplayName && <><span className="detail-project">Project: {projectDisplayName}</span> &middot; </>}
         {new Date(session.modifiedAt).toLocaleString()}
+        {cacheStats && (
+          <> &middot; <span className="detail-cache-hit-rate">
+            Cache hit rate: {formatPercent(cacheStats.session.hitRate)}
+          </span></>
+        )}
       </p>
+      {cacheStats && showCacheStats && <CacheStatsPanel stats={cacheStats} />}
       {loading ? (
         <p className="loading-text">Loading conversation...</p>
       ) : messages.length === 0 ? (

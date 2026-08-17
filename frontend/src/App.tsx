@@ -417,6 +417,7 @@ function App() {
           <span>Copy resume cmd: {altKey}+R</span>
           <span>Quick Open: {modKey}+P</span>
           <span>Theme: {altKey}+T</span>
+          <span>Cache stats: {altKey}+C</span>
         </div>
       </header>
       <div className="app-body">

@@ -25,6 +25,47 @@ export interface Session {
   hasCompanionDir: boolean;
 }
 
+export interface CacheStatsTurn {
+  cacheRead: number;
+  cacheCreation: number;
+  uncached: number;
+  output: number;
+  hitRate: number | null;
+  gapS: number | null;
+  ttlS: number;
+  model: string;
+  cause: string;
+  timestamp: string;
+}
+
+export interface CacheStatsSession {
+  turnCount: number;
+  cacheRead: number;
+  cacheCreation: number;
+  uncached: number;
+  output: number;
+  hitRate: number | null;
+}
+
+// A subagent (Agent tool) run nested in the session. It is its own cache lifeline:
+// its turns and rollup are independent of the main loop's and must never be merged into them.
+export interface CacheStatsAgent {
+  agentId: string;
+  // Both are read from the agent's meta.json, which may be missing or partial.
+  agentType: string | null;
+  description: string | null;
+  turns: CacheStatsTurn[];
+  session: CacheStatsSession;
+  skipped: number;
+}
+
+export interface CacheStats {
+  turns: CacheStatsTurn[];
+  session: CacheStatsSession;
+  skipped: number;
+  subagents: CacheStatsAgent[];
+}
+
 export interface TreeChild {
   name: string;
   path: string;
