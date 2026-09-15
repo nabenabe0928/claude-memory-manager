@@ -44,6 +44,17 @@
   border-radius: 8px;
 }
 
+.cache-panel-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
+.cache-download-btn {
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
 .cache-figure {
   padding: 8px 10px 4px;
   background: var(--bg);
@@ -161,6 +172,22 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.cache-agent-model {
+  flex: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 140px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.cache-agent-totals {
+  flex: none;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
 }
 
 .cache-agent-rate {

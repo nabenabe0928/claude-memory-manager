@@ -1,6 +1,15 @@
 import { useState } from "react";
 import type { CacheStats, CacheStatsAgent, CacheStatsTurn } from "../types";
-import { NO_VALUE, formatPercent } from "../utils";
+import {
+  NO_VALUE,
+  agentLabel,
+  buildCacheStatsExport,
+  cacheStatsFilename,
+  downloadJson,
+  formatCompactNumber,
+  formatPercent,
+  representativeModel,
+} from "../utils";
 import "./SessionDetail.css";
 
 // Cause values that do not represent a cache miss (see backend/cache_stats.py contract).
@@ -298,17 +307,10 @@ function CacheTurnsTable({ turns }: { turns: CacheStatsTurn[] }) {
   );
 }
 
-// meta.json may be missing or partial, so the id is the only label always available.
-function agentLabel(agent: CacheStatsAgent): string {
-  const parts = [agent.agentType, agent.description].filter((part) => Boolean(part));
-  return parts.length > 0 ? parts.join(" — ") : agent.agentId;
-}
-
-// A subagent is its own cache lifeline: its first turn is a legitimate "session start" miss and its
-// hit rate is independent, so it gets a self-contained figure/table instead of joining the main ones.
 function CacheAgentSection({ agent }: { agent: CacheStatsAgent }) {
   const [expanded, setExpanded] = useState(false);
   const bodyId = `cache-agent-body-${agent.agentId}`;
+  const model = representativeModel(agent);
   return (
     <div className="cache-agent">
       <button
@@ -319,6 +321,10 @@ function CacheAgentSection({ agent }: { agent: CacheStatsAgent }) {
       >
         <span className="collapsible-arrow">{expanded ? "▼" : "▶"}</span>
         <span className="cache-agent-label">{agentLabel(agent)}</span>
+        {model && <span className="cache-agent-model">{model}</span>}
+        <span className="cache-agent-totals" title="Cache read / cache creation, total">
+          {formatCompactNumber(agent.session.cacheRead)} / {formatCompactNumber(agent.session.cacheCreation)}
+        </span>
         <span className="cache-agent-rate">{formatPercent(agent.session.hitRate)}</span>
       </button>
       {expanded && (
@@ -342,12 +348,25 @@ function CacheAgentSection({ agent }: { agent: CacheStatsAgent }) {
 
 interface Props {
   stats: CacheStats;
+  projectName: string;
+  sessionSummary: string;
 }
 
-export function CacheStatsPanel({ stats }: Props) {
+export function CacheStatsPanel({ stats, projectName, sessionSummary }: Props) {
   const turns = stats.turns;
   return (
     <section id="cache-stats-panel" className="cache-stats-panel" aria-label="Per-turn cache stats">
+      <div className="cache-panel-toolbar">
+        <button
+          className="action-btn cache-download-btn"
+          onClick={() =>
+            downloadJson(cacheStatsFilename(projectName, sessionSummary), buildCacheStatsExport(stats))
+          }
+          title="Download per-turn cache stats as JSON"
+        >
+          Download JSON
+        </button>
+      </div>
       {turns.length === 0 ? (
         <p className="cache-figure-empty">No per-turn cache data for this session.</p>
       ) : (

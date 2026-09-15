@@ -351,7 +351,9 @@ export function SessionDetail({ session, projectId, projectDisplayName, onBack, 
           </span></>
         )}
       </p>
-      {cacheStats && showCacheStats && <CacheStatsPanel stats={cacheStats} />}
+      {cacheStats && showCacheStats && (
+        <CacheStatsPanel stats={cacheStats} projectName={projectDisplayName} sessionSummary={session.summary} />
+      )}
       {loading ? (
         <p className="loading-text">Loading conversation...</p>
       ) : messages.length === 0 ? (

@@ -693,6 +693,16 @@ describe("SessionDetail", () => {
         ).toHaveTextContent("50.0%");
       });
 
+      it("shows the first turn's model and total cache read/creation while collapsed", async () => {
+        const { panel } = await openPanel({ ...statsWithTurns(mixedTurns), subagents: agents });
+
+        const styleReviewer = within(panel).getByRole("button", {
+          name: /python-style-reviewer — Review backend Python style/,
+        });
+        expect(styleReviewer).toHaveTextContent("claude-sonnet-4");
+        expect(styleReviewer).toHaveTextContent("37.0K / 1.0K");
+      });
+
       it("falls back to the agent id when the type and description are null", async () => {
         const anonymous = makeCacheStatsAgent({ agentType: null, description: null });
         const { panel } = await openPanel({
