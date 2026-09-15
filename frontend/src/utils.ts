@@ -55,6 +55,8 @@ export interface CacheStatsExportEntry {
   hit_rate: (number | null)[];
   read: number[];
   create: number[];
+  input: number[];
+  output: number[];
   gap: (number | null)[];
 }
 
@@ -64,6 +66,8 @@ function toExportEntry(task: string, turns: CacheStats["turns"]): CacheStatsExpo
     hit_rate: turns.map((turn) => turn.hitRate),
     read: turns.map((turn) => turn.cacheRead),
     create: turns.map((turn) => turn.cacheCreation),
+    input: turns.map((turn) => turn.uncached),
+    output: turns.map((turn) => turn.output),
     gap: turns.map((turn) => turn.gapS),
   };
 }

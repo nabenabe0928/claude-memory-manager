@@ -46,13 +46,49 @@
 
 .cache-panel-toolbar {
   display: flex;
-  justify-content: flex-end;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
   margin-bottom: 8px;
 }
 
 .cache-download-btn {
   padding: 4px 10px;
   font-size: 12px;
+  flex-shrink: 0;
+}
+
+.cache-schema-hint {
+  min-width: 0;
+}
+
+.cache-schema-detail {
+  max-width: 560px;
+  white-space: normal;
+}
+
+.cache-schema-copy-btn {
+  display: block;
+  margin: 0 0 8px auto;
+  padding: 2px 8px;
+  font-size: 11px;
+}
+
+.cache-schema-detail p {
+  margin: 0 0 6px;
+}
+
+.cache-schema-detail ul {
+  margin: 0 0 6px;
+  padding-left: 18px;
+}
+
+.cache-schema-detail li {
+  margin: 2px 0;
+}
+
+.cache-schema-detail code {
+  font-size: 11px;
 }
 
 .cache-figure {

@@ -103,6 +103,8 @@ describe("buildCacheStatsExport", () => {
       hit_rate: [null, 0.5],
       read: [0, 200],
       create: [900, 20],
+      input: [0, 0],
+      output: [500, 500],
       gap: [null, 3],
     });
   });
@@ -134,6 +136,8 @@ describe("buildCacheStatsExport", () => {
       hit_rate: [0.8],
       read: [50],
       create: [5],
+      input: [0],
+      output: [500],
       gap: [1],
     });
   });

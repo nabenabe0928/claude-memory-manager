@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { CacheStats, CacheStatsAgent, CacheStatsTurn } from "../types";
 import {
   NO_VALUE,
@@ -307,6 +307,85 @@ function CacheTurnsTable({ turns }: { turns: CacheStatsTurn[] }) {
   );
 }
 
+const PRICING_URL = "https://platform.claude.com/docs/en/about-claude/pricing";
+
+function CacheSchemaHint() {
+  const [expanded, setExpanded] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const detailRef = useRef<HTMLDivElement>(null);
+  const bodyId = "cache-schema-hint-body";
+
+  const handleCopy = () => {
+    const text = detailRef.current?.innerText ?? "";
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  };
+
+  return (
+    <div className="cache-schema-hint">
+      <button
+        className="collapsible-toggle cache-schema-toggle"
+        onClick={() => setExpanded((shown) => !shown)}
+        aria-expanded={expanded}
+        aria-controls={bodyId}
+      >
+        <span className="collapsible-arrow">{expanded ? "▼" : "▶"}</span>
+        Schema hint
+      </button>
+      {expanded && (
+        <div id={bodyId} className="collapsible-detail cache-schema-detail">
+          <button className="action-btn cache-schema-copy-btn" onClick={handleCopy}>
+            {copied ? "Copied!" : "Copy"}
+          </button>
+          <div ref={detailRef}>
+            <p>
+              Each entry in the downloaded JSON is keyed <code>&lt;role&gt;-&lt;model&gt;</code> (e.g.{" "}
+              <code>main-claude-sonnet-4</code>) and holds one array per field below, aligned by turn index:
+            </p>
+            <ul>
+              <li>
+                <code>task</code> — label for the entry: <code>&quot;main&quot;</code> for the session, or
+                the subagent&apos;s type / description.
+              </li>
+              <li>
+                <code>hit_rate</code> — cache_read / (cache_read + cache_creation) for the turn;{" "}
+                <code>null</code> when neither counter is set.
+              </li>
+              <li>
+                <code>read</code> — <code>cache_read_input_tokens</code>: prompt tokens served from cache.
+              </li>
+              <li>
+                <code>create</code> — <code>cache_creation_input_tokens</code>: prompt tokens written to
+                cache.
+              </li>
+              <li>
+                <code>input</code> — <code>input_tokens</code>: prompt tokens neither read from nor written
+                to cache.
+              </li>
+              <li>
+                <code>output</code> — <code>output_tokens</code> generated for the turn.
+              </li>
+              <li>
+                <code>gap</code> — seconds since the previous turn; <code>null</code> for the first turn.
+              </li>
+            </ul>
+            <p>
+              Token counts follow Anthropic&apos;s usage fields; see the{" "}
+              <a href={PRICING_URL} target="_blank" rel="noopener noreferrer">
+                Claude pricing page
+              </a>{" "}
+              for per-token-type rates (cache writes and reads are priced differently from regular input
+              and output). Assume the TTL for the main agent to be 1h and that for subagents to be 5m.
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function CacheAgentSection({ agent }: { agent: CacheStatsAgent }) {
   const [expanded, setExpanded] = useState(false);
   const bodyId = `cache-agent-body-${agent.agentId}`;
@@ -357,6 +436,7 @@ export function CacheStatsPanel({ stats, projectName, sessionSummary }: Props) {
   return (
     <section id="cache-stats-panel" className="cache-stats-panel" aria-label="Per-turn cache stats">
       <div className="cache-panel-toolbar">
+        <CacheSchemaHint />
         <button
           className="action-btn cache-download-btn"
           onClick={() =>
