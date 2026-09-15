@@ -52,6 +52,7 @@ export function representativeModel(agent: CacheStatsAgent): string | null {
 
 export interface CacheStatsExportEntry {
   task: string;
+  ttl: string;
   hit_rate: (number | null)[];
   read: number[];
   create: number[];
@@ -60,9 +61,18 @@ export interface CacheStatsExportEntry {
   gap: (number | null)[];
 }
 
+// ttlS is the observed TTL (300s or 3600s, see backend/cache_stats.py); a run never
+// switches TTL mid-flight, so the first turn's value stands in for the whole entry.
+function formatTtlLabel(ttlS: number): string {
+  if (ttlS === 3600) return "1h";
+  if (ttlS === 300) return "5m";
+  return `${ttlS}s`;
+}
+
 function toExportEntry(task: string, turns: CacheStats["turns"]): CacheStatsExportEntry {
   return {
     task,
+    ttl: formatTtlLabel(turns[0].ttlS),
     hit_rate: turns.map((turn) => turn.hitRate),
     read: turns.map((turn) => turn.cacheRead),
     create: turns.map((turn) => turn.cacheCreation),

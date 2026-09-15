@@ -100,6 +100,7 @@ describe("buildCacheStatsExport", () => {
     expect(Object.keys(result)).toEqual(["main-claude-sonnet-4"]);
     expect(result["main-claude-sonnet-4"]).toEqual({
       task: "main",
+      ttl: "5m",
       hit_rate: [null, 0.5],
       read: [0, 200],
       create: [900, 20],
@@ -133,6 +134,7 @@ describe("buildCacheStatsExport", () => {
     expect(Object.keys(result)).toEqual(["main-claude-sonnet-4", "sub-claude-opus-4"]);
     expect(result["sub-claude-opus-4"]).toEqual({
       task: "python-style-reviewer — Review backend Python style",
+      ttl: "5m",
       hit_rate: [0.8],
       read: [50],
       create: [5],
@@ -186,6 +188,18 @@ describe("buildCacheStatsExport", () => {
     expect(result["sub-claude-sonnet-4"].task).toBe("reviewer — Review code");
     expect(result["sub-claude-sonnet-4-2"].task).toBe("reviewer — Review code");
     expect(result["sub-claude-sonnet-4-3"].task).toBe("reviewer — Review code");
+  });
+
+  it.each([
+    [300, "5m"],
+    [3600, "1h"],
+    [900, "900s"],
+  ] as [number, string][])("labels a %d-second TTL as %j", (ttlS, expected) => {
+    const stats = makeCacheStats({ turns: [makeCacheStatsTurn({ model: "claude-sonnet-4", ttlS })] });
+
+    const result = buildCacheStatsExport(stats);
+
+    expect(result["main-claude-sonnet-4"].ttl).toBe(expected);
   });
 });
 
