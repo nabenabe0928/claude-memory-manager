@@ -350,6 +350,9 @@ function CacheSchemaHint() {
                 the subagent&apos;s type / description.
               </li>
               <li>
+                <code>ttl</code> — the TTL information: it shows how long the cache lives.
+              </li>
+              <li>
                 <code>hit_rate</code> — cache_read / (cache_read + cache_creation) for the turn;{" "}
                 <code>null</code> when neither counter is set.
               </li>
@@ -377,7 +380,7 @@ function CacheSchemaHint() {
                 Claude pricing page
               </a>{" "}
               for per-token-type rates (cache writes and reads are priced differently from regular input
-              and output). Assume the TTL for the main agent to be 1h and that for subagents to be 5m.
+              and output).
             </p>
           </div>
         </div>
