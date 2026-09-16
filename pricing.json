@@ -1,0 +1,9 @@
+{
+  "claude-sonnet-5": {
+    "baseInputRate": 2.0,
+    "fiveMinWriteRate": 2.5,
+    "oneHourWriteRate": 4.0,
+    "cacheReadRate": 0.2,
+    "outputRate": 10.0
+  }
+}

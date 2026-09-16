@@ -429,11 +429,20 @@ function CachePricingEditor({ models, pricing, onPricingUpdate, onToast }: Cache
   const [expanded, setExpanded] = useState(false);
   const [model, setModel] = useState(models[0] ?? "");
   const [rates, setRates] = useState<ModelPricing>(pricing[models[0] ?? ""] ?? EMPTY_RATES);
+  const [syncedWith, setSyncedWith] = useState({ model, pricing });
   const bodyId = "cache-pricing-editor-body";
+
+  // `pricing` loads asynchronously after this component mounts, so the initial
+  // `rates` snapshot above is often stale. Re-derive it whenever `model` or
+  // `pricing` changes, using the render-time state-adjustment pattern instead
+  // of an effect (see https://react.dev/learn/you-might-not-need-an-effect).
+  if (syncedWith.model !== model || syncedWith.pricing !== pricing) {
+    setSyncedWith({ model, pricing });
+    setRates(pricing[model] ?? EMPTY_RATES);
+  }
 
   const selectModel = (nextModel: string) => {
     setModel(nextModel);
-    setRates(pricing[nextModel] ?? EMPTY_RATES);
   };
 
   const handleFieldChange = (key: keyof ModelPricing, value: string) => {

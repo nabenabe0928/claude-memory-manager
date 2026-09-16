@@ -8,8 +8,8 @@ from pricing import save_model_pricing
 
 @pytest.fixture()
 def pricing_file(tmp_path, monkeypatch):
-    """Point the pricing module at a pricing.json under a temp dir, not the real home."""
-    fake_file = tmp_path / ".claude-memory-manager" / "pricing.json"
+    """Point the pricing module at a pricing.json under a temp dir, not the repo's real one."""
+    fake_file = tmp_path / "pricing.json"
     monkeypatch.setattr("pricing._PRICING_FILE", fake_file)
     return fake_file
 

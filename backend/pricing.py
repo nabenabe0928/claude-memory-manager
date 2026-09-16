@@ -1,15 +1,15 @@
 """User-maintained USD pricing table for Claude API token usage.
 
 Anthropic's per-model pricing changes too often to hardcode, so rates are kept in a
-small app-owned JSON file the user edits through the UI instead of in this app's
-source tree.
+JSON file the user edits through the UI. The file lives in the repo root and is
+tracked in git, so rates are shared across clones instead of being per-machine.
 """
 
 import json
 from pathlib import Path
 
 
-_PRICING_FILE = Path.home() / ".claude-memory-manager" / "pricing.json"
+_PRICING_FILE = Path(__file__).resolve().parent.parent / "pricing.json"
 
 _RATE_FIELDS = (
     "baseInputRate",
