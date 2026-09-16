@@ -38,6 +38,7 @@ interface Props {
   onDelete: (sessionId: string) => void;
   onDuplicate: (sessionId: string) => void;
   onRegisterRefresh?: (refresh: () => Promise<void>) => void;
+  onToast?: (message: string) => void;
 }
 
 const REMARK_PLUGINS = [remarkGfm];
@@ -168,7 +169,7 @@ function countUncheckedDescendants(messages: Message[], targetIndices: Set<numbe
   return unchecked;
 }
 
-export function SessionDetail({ session, projectId, projectDisplayName, onBack, onDelete, onDuplicate, onRegisterRefresh }: Props) {
+export function SessionDetail({ session, projectId, projectDisplayName, onBack, onDelete, onDuplicate, onRegisterRefresh, onToast }: Props) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [cacheStats, setCacheStats] = useState<CacheStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -352,7 +353,12 @@ export function SessionDetail({ session, projectId, projectDisplayName, onBack, 
         )}
       </p>
       {cacheStats && showCacheStats && (
-        <CacheStatsPanel stats={cacheStats} projectName={projectDisplayName} sessionSummary={session.summary} />
+        <CacheStatsPanel
+          stats={cacheStats}
+          projectName={projectDisplayName}
+          sessionSummary={session.summary}
+          onToast={onToast}
+        />
       )}
       {loading ? (
         <p className="loading-text">Loading conversation...</p>

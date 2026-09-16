@@ -66,6 +66,17 @@ export interface CacheStats {
   subagents: CacheStatsAgent[];
 }
 
+// Rates are USD per 1,000,000 tokens; see backend contract for GET/PUT /api/pricing.
+export interface ModelPricing {
+  baseInputRate: number;
+  fiveMinWriteRate: number;
+  oneHourWriteRate: number;
+  cacheReadRate: number;
+  outputRate: number;
+}
+
+export type PricingTable = Record<string, ModelPricing>;
+
 export interface TreeChild {
   name: string;
   path: string;

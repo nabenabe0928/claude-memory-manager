@@ -44,6 +44,12 @@
   border-radius: 8px;
 }
 
+.cache-session-cost-headline {
+  margin: 0 0 8px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
 .cache-panel-toolbar {
   display: flex;
   align-items: flex-start;
@@ -89,6 +95,30 @@
 
 .cache-schema-detail code {
   font-size: 11px;
+}
+
+.cache-pricing-editor {
+  min-width: 0;
+}
+
+.cache-pricing-detail {
+  max-width: 280px;
+  white-space: normal;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cache-pricing-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.cache-pricing-save-btn {
+  align-self: flex-start;
 }
 
 .cache-figure {
@@ -229,6 +259,12 @@
 .cache-agent-rate {
   flex: none;
   color: var(--text-muted);
+}
+
+.cache-agent-cost {
+  flex: none;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
 }
 
 .cache-agent-body {

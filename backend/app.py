@@ -14,6 +14,8 @@ from flask_cors import CORS
 import frontmatter
 
 from cache_stats import build_cache_stats
+from pricing import load_pricing
+from pricing import save_model_pricing
 from tool_formatters import format_tool_input
 
 
@@ -395,6 +397,21 @@ def get_session(project_id: str, session_id: str):
 def get_session_cache_stats(project_id: str, session_id: str):
     jsonl_file = _resolve_session_file(project_id, session_id)
     return jsonify(build_cache_stats(jsonl_file))
+
+
+@app.route("/api/pricing")
+def get_pricing():
+    return jsonify(load_pricing())
+
+
+@app.route("/api/pricing/<model>", methods=["PUT"])
+def put_pricing(model: str):
+    if "/" in model or ".." in model:
+        abort(400, "Invalid model name")
+    data = request.get_json(force=True)
+    if not isinstance(data, dict):
+        abort(400, "Invalid pricing payload")
+    return jsonify(save_model_pricing(model, data))
 
 
 @app.route(

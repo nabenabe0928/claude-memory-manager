@@ -592,10 +592,10 @@ describe("SessionDetail", () => {
       const cellTexts = (row: HTMLElement) =>
         within(row).getAllByRole("cell").map((cell) => cell.textContent);
       expect(cellTexts(bodyRows[0])).toEqual(
-        ["1", "–", "0", "9000", "–", "300", "claude-sonnet-4", "session start"],
+        ["1", "–", "0", "9000", "–", "300", "$0.0", "claude-sonnet-4", "session start"],
       );
       expect(cellTexts(bodyRows[2])).toEqual(
-        ["3", "43.2%", "1234", "56", "3700.5", "3600", "claude-opus-4", "TTL expiry"],
+        ["3", "43.2%", "1234", "56", "3700.5", "3600", "$0.0", "claude-opus-4", "TTL expiry"],
       );
     });
 

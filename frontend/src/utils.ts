@@ -1,4 +1,4 @@
-import type { CacheStats, CacheStatsAgent } from "./types";
+import type { CacheStats, CacheStatsAgent, CacheStatsTurn, PricingTable } from "./types";
 
 export const isMac = navigator.platform.toUpperCase().includes("MAC");
 export const modKey = isMac ? "Cmd" : "Ctrl";
@@ -34,6 +34,28 @@ export function downloadJson(filename: string, data: unknown): void {
   link.download = filename;
   link.click();
   URL.revokeObjectURL(url);
+}
+
+// turn.cacheCreation is a single aggregate number (not pre-split by TTL): classify the whole
+// amount as a 5m or 1h write using turn.ttlS. A model missing from the pricing table is priced
+// at $0 (all rates 0), not treated as an error.
+export function turnCost(turn: CacheStatsTurn, pricing: PricingTable): number {
+  const rates = pricing[turn.model];
+  if (!rates) return 0;
+  const writeRate = turn.ttlS === 3600 ? rates.oneHourWriteRate : rates.fiveMinWriteRate;
+  return (
+    (turn.uncached * rates.baseInputRate) / 1e6 +
+    (turn.cacheCreation * writeRate) / 1e6 +
+    (turn.cacheRead * rates.cacheReadRate) / 1e6 +
+    (turn.output * rates.outputRate) / 1e6
+  );
+}
+
+// Rounded down (never up) to the nearest $0.1, so the displayed figure never overstates cost.
+// The `1e-9` nudge absorbs float error (e.g. 13.89 * 10 landing on 138.89999999999998) without
+// affecting real boundary values.
+export function formatCost(value: number): string {
+  return `$${(Math.floor(value * 10 + 1e-9) / 10).toFixed(1)}`;
 }
 
 // meta.json may be missing or partial, so the id is the only label always available.

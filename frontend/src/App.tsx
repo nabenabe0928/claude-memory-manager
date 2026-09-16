@@ -489,6 +489,7 @@ function App() {
             }}
             onDuplicate={handleDuplicateSession}
             onRegisterRefresh={(fn) => { sessionDetailRefresh.current = fn; }}
+            onToast={setToast}
           />
         )}
       </div>

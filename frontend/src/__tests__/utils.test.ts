@@ -1,10 +1,13 @@
 import { describe, it, expect } from "vitest";
+import type { PricingTable } from "../types";
 import {
   buildCacheStatsExport,
   cacheStatsFilename,
   formatCompactNumber,
+  formatCost,
   formatPercent,
   formatSize,
+  turnCost,
   NO_VALUE,
 } from "../utils";
 import { makeCacheStats, makeCacheStatsAgent, makeCacheStatsTurn } from "../test-utils/factories";
@@ -200,6 +203,61 @@ describe("buildCacheStatsExport", () => {
     const result = buildCacheStatsExport(stats);
 
     expect(result["main-claude-sonnet-4"].ttl).toBe(expected);
+  });
+});
+
+describe("turnCost", () => {
+  const pricing: PricingTable = {
+    "claude-sonnet-4": {
+      baseInputRate: 3,
+      fiveMinWriteRate: 3.75,
+      oneHourWriteRate: 6,
+      cacheReadRate: 0.3,
+      outputRate: 15,
+    },
+  };
+
+  it("prices a 5m-TTL turn's cache creation at the five-minute write rate", () => {
+    const turn = makeCacheStatsTurn({
+      model: "claude-sonnet-4",
+      ttlS: 300,
+      uncached: 1000,
+      cacheCreation: 2000,
+      cacheRead: 3000,
+      output: 500,
+    });
+    const expected = (1000 * 3 + 2000 * 3.75 + 3000 * 0.3 + 500 * 15) / 1e6;
+    expect(turnCost(turn, pricing)).toBeCloseTo(expected);
+  });
+
+  it("prices a 1h-TTL turn's cache creation at the one-hour write rate", () => {
+    const turn = makeCacheStatsTurn({
+      model: "claude-sonnet-4",
+      ttlS: 3600,
+      uncached: 1000,
+      cacheCreation: 2000,
+      cacheRead: 3000,
+      output: 500,
+    });
+    const expected = (1000 * 3 + 2000 * 6 + 3000 * 0.3 + 500 * 15) / 1e6;
+    expect(turnCost(turn, pricing)).toBeCloseTo(expected);
+  });
+
+  it("returns 0 when the turn's model has no pricing entry", () => {
+    const turn = makeCacheStatsTurn({ model: "claude-unknown-model" });
+    expect(turnCost(turn, pricing)).toBe(0);
+  });
+});
+
+describe("formatCost", () => {
+  it.each([
+    [13.841, "$13.8"],
+    [13.89, "$13.8"],
+    [13.9, "$13.9"],
+    [0.3, "$0.3"],
+    [0, "$0.0"],
+  ])("rounds %s down to %s", (value, expected) => {
+    expect(formatCost(value)).toBe(expected);
   });
 });
 

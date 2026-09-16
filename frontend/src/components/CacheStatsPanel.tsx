@@ -1,5 +1,5 @@
-import { useRef, useState } from "react";
-import type { CacheStats, CacheStatsAgent, CacheStatsTurn } from "../types";
+import { useEffect, useRef, useState } from "react";
+import type { CacheStats, CacheStatsAgent, CacheStatsTurn, ModelPricing, PricingTable } from "../types";
 import {
   NO_VALUE,
   agentLabel,
@@ -7,8 +7,10 @@ import {
   cacheStatsFilename,
   downloadJson,
   formatCompactNumber,
+  formatCost,
   formatPercent,
   representativeModel,
+  turnCost,
 } from "../utils";
 import "./SessionDetail.css";
 
@@ -269,7 +271,16 @@ function CacheTrajectory({ turns }: { turns: CacheStatsTurn[] }) {
   );
 }
 
-function CacheTurnsTable({ turns }: { turns: CacheStatsTurn[] }) {
+function CacheTurnsTable({ turns, pricing }: { turns: CacheStatsTurn[]; pricing: PricingTable }) {
+  // Local to this render only: each CacheTurnsTable instance (main table, each subagent's table)
+  // derives its own running total from `turns`/`pricing`, never shared via state/store.
+  const rows = turns.map((turn, index) => ({
+    turn,
+    index,
+    cumulativeCost: turns
+      .slice(0, index + 1)
+      .reduce((sum, priorTurn) => sum + turnCost(priorTurn, pricing), 0),
+  }));
   return (
     <div className="cache-table-scroll">
       <table className="cache-turns-table">
@@ -281,12 +292,13 @@ function CacheTurnsTable({ turns }: { turns: CacheStatsTurn[] }) {
             <th scope="col">Cache creation</th>
             <th scope="col">Gap (s)</th>
             <th scope="col">TTL (s)</th>
+            <th scope="col">Cost</th>
             <th scope="col">Model</th>
             <th scope="col">Cause</th>
           </tr>
         </thead>
         <tbody>
-          {turns.map((turn, index) => (
+          {rows.map(({ turn, index, cumulativeCost: rowCost }) => (
             <tr
               key={index}
               className={isMissCause(turn.cause) ? "cache-turn-row cache-turn-miss" : "cache-turn-row"}
@@ -297,6 +309,7 @@ function CacheTurnsTable({ turns }: { turns: CacheStatsTurn[] }) {
               <td>{turn.cacheCreation}</td>
               <td>{turn.gapS ?? NO_VALUE}</td>
               <td>{turn.ttlS}</td>
+              <td>{formatCost(rowCost)}</td>
               <td>{turn.model}</td>
               <td>{turn.cause}</td>
             </tr>
@@ -389,10 +402,104 @@ function CacheSchemaHint() {
   );
 }
 
-function CacheAgentSection({ agent }: { agent: CacheStatsAgent }) {
+const EMPTY_RATES: ModelPricing = {
+  baseInputRate: 0,
+  fiveMinWriteRate: 0,
+  oneHourWriteRate: 0,
+  cacheReadRate: 0,
+  outputRate: 0,
+};
+
+const PRICING_FIELDS: { key: keyof ModelPricing; label: string }[] = [
+  { key: "baseInputRate", label: "Base input tokens" },
+  { key: "fiveMinWriteRate", label: "5m cache writes" },
+  { key: "oneHourWriteRate", label: "1h cache writes" },
+  { key: "cacheReadRate", label: "Cache reads" },
+  { key: "outputRate", label: "Output tokens" },
+];
+
+interface CachePricingEditorProps {
+  models: string[];
+  pricing: PricingTable;
+  onPricingUpdate: (pricing: PricingTable) => void;
+  onToast?: (message: string) => void;
+}
+
+function CachePricingEditor({ models, pricing, onPricingUpdate, onToast }: CachePricingEditorProps) {
+  const [expanded, setExpanded] = useState(false);
+  const [model, setModel] = useState(models[0] ?? "");
+  const [rates, setRates] = useState<ModelPricing>(pricing[models[0] ?? ""] ?? EMPTY_RATES);
+  const bodyId = "cache-pricing-editor-body";
+
+  const selectModel = (nextModel: string) => {
+    setModel(nextModel);
+    setRates(pricing[nextModel] ?? EMPTY_RATES);
+  };
+
+  const handleFieldChange = (key: keyof ModelPricing, value: string) => {
+    setRates((current) => ({ ...current, [key]: Number(value) }));
+  };
+
+  const handleSave = () => {
+    fetch(`/api/pricing/${model}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(rates),
+    })
+      .then((r) => r.json())
+      .then((updated) => {
+        onPricingUpdate(updated);
+        onToast?.("Pricing saved!");
+      });
+  };
+
+  return (
+    <div className="cache-pricing-editor">
+      <button
+        className="collapsible-toggle cache-pricing-toggle"
+        onClick={() => setExpanded((shown) => !shown)}
+        aria-expanded={expanded}
+        aria-controls={bodyId}
+      >
+        <span className="collapsible-arrow">{expanded ? "▼" : "▶"}</span>
+        Update Claude pricing
+      </button>
+      {expanded && (
+        <div id={bodyId} className="collapsible-detail cache-pricing-detail">
+          <label className="cache-pricing-field">
+            Model
+            <select value={model} onChange={(e) => selectModel(e.target.value)}>
+              {models.map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
+            </select>
+          </label>
+          {PRICING_FIELDS.map(({ key, label }) => (
+            <label key={key} className="cache-pricing-field">
+              {label} (USD / MTok)
+              <input
+                type="number"
+                value={rates[key]}
+                onChange={(e) => handleFieldChange(key, e.target.value)}
+              />
+            </label>
+          ))}
+          <button className="action-btn cache-pricing-save-btn" onClick={handleSave} disabled={!model}>
+            Save
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CacheAgentSection({ agent, pricing }: { agent: CacheStatsAgent; pricing: PricingTable }) {
   const [expanded, setExpanded] = useState(false);
   const bodyId = `cache-agent-body-${agent.agentId}`;
   const model = representativeModel(agent);
+  const totalCost = agent.turns.reduce((sum, turn) => sum + turnCost(turn, pricing), 0);
   return (
     <div className="cache-agent">
       <button
@@ -408,6 +515,7 @@ function CacheAgentSection({ agent }: { agent: CacheStatsAgent }) {
           {formatCompactNumber(agent.session.cacheRead)} / {formatCompactNumber(agent.session.cacheCreation)}
         </span>
         <span className="cache-agent-rate">{formatPercent(agent.session.hitRate)}</span>
+        <span className="cache-agent-cost">{formatCost(totalCost)}</span>
       </button>
       {expanded && (
         <div id={bodyId} className="cache-agent-body">
@@ -416,7 +524,7 @@ function CacheAgentSection({ agent }: { agent: CacheStatsAgent }) {
           ) : (
             <>
               <CacheTrajectory turns={agent.turns} />
-              <CacheTurnsTable turns={agent.turns} />
+              <CacheTurnsTable turns={agent.turns} pricing={pricing} />
             </>
           )}
           {agent.skipped > 0 && (
@@ -428,18 +536,56 @@ function CacheAgentSection({ agent }: { agent: CacheStatsAgent }) {
   );
 }
 
+// Distinct models observed in this session only (main turns + every subagent's turns),
+// deduplicated, in first-seen order.
+function distinctModels(stats: CacheStats): string[] {
+  const models = new Set<string>();
+  for (const turn of stats.turns) models.add(turn.model);
+  for (const agent of stats.subagents) {
+    for (const turn of agent.turns) models.add(turn.model);
+  }
+  return [...models];
+}
+
 interface Props {
   stats: CacheStats;
   projectName: string;
   sessionSummary: string;
+  onToast?: (message: string) => void;
 }
 
-export function CacheStatsPanel({ stats, projectName, sessionSummary }: Props) {
+export function CacheStatsPanel({ stats, projectName, sessionSummary, onToast }: Props) {
   const turns = stats.turns;
+  const [pricing, setPricing] = useState<PricingTable>({});
+
+  useEffect(() => {
+    fetch("/api/pricing")
+      .then((r) => r.json())
+      .then((data) => setPricing(data))
+      .catch(() => setPricing({}));
+  }, []);
+
+  const models = distinctModels(stats);
+  const mainAgentCost = turns.reduce((sum, turn) => sum + turnCost(turn, pricing), 0);
+  const subagentsCost = stats.subagents.reduce(
+    (sum, agent) => sum + agent.turns.reduce((agentSum, turn) => agentSum + turnCost(turn, pricing), 0),
+    0,
+  );
+  const sessionCost = mainAgentCost + subagentsCost;
+
   return (
     <section id="cache-stats-panel" className="cache-stats-panel" aria-label="Per-turn cache stats">
+      <p className="cache-session-cost-headline">
+        Total Cost: {formatCost(sessionCost)} (Session), {formatCost(mainAgentCost)} (Main Agent)
+      </p>
       <div className="cache-panel-toolbar">
         <CacheSchemaHint />
+        <CachePricingEditor
+          models={models}
+          pricing={pricing}
+          onPricingUpdate={setPricing}
+          onToast={onToast}
+        />
         <button
           className="action-btn cache-download-btn"
           onClick={() =>
@@ -455,14 +601,14 @@ export function CacheStatsPanel({ stats, projectName, sessionSummary }: Props) {
       ) : (
         <>
           <CacheTrajectory turns={turns} />
-          <CacheTurnsTable turns={turns} />
+          <CacheTurnsTable turns={turns} pricing={pricing} />
         </>
       )}
       {stats.subagents.length > 0 && (
         <div className="cache-agents">
           <h3 className="cache-agents-heading">Subagents ({stats.subagents.length})</h3>
           {stats.subagents.map((agent) => (
-            <CacheAgentSection key={agent.agentId} agent={agent} />
+            <CacheAgentSection key={agent.agentId} agent={agent} pricing={pricing} />
           ))}
         </div>
       )}
