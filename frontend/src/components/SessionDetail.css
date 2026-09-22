@@ -344,6 +344,11 @@
   color: var(--text-muted);
 }
 
+.message-turn {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
 .message-actions {
   display: flex;
   gap: 4px;

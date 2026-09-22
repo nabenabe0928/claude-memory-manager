@@ -56,6 +56,9 @@ class _Turn:
             it reflects whichever ephemeral bucket the API actually reported.
         after_compact: Whether this turn's parent record was a compact summary,
             i.e. this turn starts a fresh context after `/compact`.
+        key: The `requestId` (or `message.id` fallback) this turn was deduped on;
+            lets other views (e.g. the transcript's turn numbers) match a record
+            back to its turn without redoing the dedup logic.
         gap_s: Seconds since the previous turn; filled in by `_attribute`.
         hit_rate: Cache-read share of this turn's prompt; filled in by `_attribute`.
         cause: Inferred cache-miss cause for this turn; filled in by `_attribute`.
@@ -72,6 +75,7 @@ class _Turn:
     output: int
     ttl_s: int
     after_compact: bool
+    key: str
     gap_s: float | None = None
     hit_rate: float | None = None
     cause: str = ""
@@ -107,7 +111,7 @@ def _compact_parent_uuids(records: list[dict]) -> set[str]:
     return parents
 
 
-def _build_turn(record: dict, compact_parents: set[str]) -> _Turn | None:
+def _build_turn(record: dict, compact_parents: set[str], key: str) -> _Turn | None:
     message = record.get("message") or {}
     usage = message.get("usage") or {}
     split = usage.get("cache_creation") or {}
@@ -133,6 +137,7 @@ def _build_turn(record: dict, compact_parents: set[str]) -> _Turn | None:
             _EPHEMERAL_1H_TTL_S if split.get("ephemeral_1h_input_tokens") else _EPHEMERAL_5M_TTL_S
         ),
         after_compact=record.get("parentUuid") in compact_parents,
+        key=key,
     )
 
 
@@ -171,7 +176,7 @@ def _load_turns(jsonl_file: Path, *, include_sidechain: bool = False) -> tuple[l
             continue
         if key in seen:
             continue
-        turn = _build_turn(record, compact_parents)
+        turn = _build_turn(record, compact_parents, key)
         if turn is None:
             skipped += 1
             continue
@@ -324,3 +329,16 @@ def build_cache_stats(jsonl_file: Path) -> dict:
         "skipped": skipped,
         "subagents": _build_subagents(jsonl_file),
     }
+
+
+def build_turn_numbers(jsonl_file: Path) -> dict[str, int]:
+    """Map each main-session turn's dedup key to its 1-based turn number.
+
+    Uses the same request de-duplication, sidechain/synthetic exclusion, and
+    chronological ordering as `build_cache_stats`, so a number returned here
+    matches that turn's row position in the cache-stats table. Records with no
+    entry here (sidechain, synthetic, or otherwise skipped) have no turn of
+    their own.
+    """
+    turns, _ = _load_turns(jsonl_file)
+    return {t.key: i + 1 for i, t in enumerate(turns)}

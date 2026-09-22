@@ -5,5 +5,19 @@
     "oneHourWriteRate": 4.0,
     "cacheReadRate": 0.2,
     "outputRate": 10.0
+  },
+  "claude-opus-5": {
+    "baseInputRate": 5.0,
+    "fiveMinWriteRate": 6.25,
+    "oneHourWriteRate": 10.0,
+    "cacheReadRate": 0.5,
+    "outputRate": 25.0
+  },
+  "claude-haiku-4-5-20251001": {
+    "baseInputRate": 1.0,
+    "fiveMinWriteRate": 1.25,
+    "oneHourWriteRate": 2.0,
+    "cacheReadRate": 0.1,
+    "outputRate": 5.0
   }
 }

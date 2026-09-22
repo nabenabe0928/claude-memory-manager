@@ -588,6 +588,44 @@ class TestGetSessionEndpoint:
         data = resp.get_json()
         assert data[0]["parts"][0]["label"] == "[Tool: ?]"
 
+    def test_assistant_turn_numbers_match_cache_stats_ordering(self, client, projects_dir):
+        r1 = make_assistant_record("r1", "m1")
+        r1["message"]["content"] = "4"
+        r2 = make_assistant_record("r2", "m2", timestamp="2026-08-17T00:01:00Z")
+        r2["message"]["content"] = "8"
+        create_project(
+            projects_dir,
+            "proj",
+            sessions={
+                "sess": [
+                    {"type": "user", "message": {"content": "2+2?"}},
+                    r1,
+                    {"type": "user", "message": {"content": "4+4?"}},
+                    r2,
+                ],
+            },
+        )
+        resp = client.get("/api/projects/proj/sessions/sess")
+        data = resp.get_json()
+        assert [m["role"] for m in data] == ["user", "assistant", "user", "assistant"]
+        assert data[0]["turn"] is None
+        assert data[1]["turn"] == 1
+        assert data[2]["turn"] is None
+        assert data[3]["turn"] == 2
+
+    def test_sidechain_assistant_message_carries_over_previous_turn(self, client, projects_dir):
+        r1 = make_assistant_record("r1", "m1")
+        r1["message"]["content"] = "4"
+        side = make_assistant_record(
+            "r2", "m2", timestamp="2026-08-17T00:01:00Z", is_sidechain=True
+        )
+        side["message"]["content"] = "subagent chatter"
+        create_project(projects_dir, "proj", sessions={"sess": [r1, side]})
+        resp = client.get("/api/projects/proj/sessions/sess")
+        data = resp.get_json()
+        assert data[0]["turn"] == 1
+        assert data[1]["turn"] == 1
+
 
 class TestSessionCacheStatsEndpoint:
     def test_returns_per_turn_and_session_stats(self, client, projects_dir):

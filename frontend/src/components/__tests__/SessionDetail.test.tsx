@@ -92,6 +92,25 @@ describe("SessionDetail", () => {
         expect(screen.getByText("No messages found in this session.")).toBeInTheDocument();
       });
     });
+
+    it("shows the turn number next to an assistant message, never next to a user message", async () => {
+      mockFetchWith([
+        { role: "user", lineIndex: 0, turn: null, parts: [{ type: "text" as const, text: "Hello there" }] },
+        {
+          role: "assistant",
+          lineIndex: 1,
+          turn: 3,
+          parts: [{ type: "text" as const, text: "Hi! How can I help?" }],
+        },
+      ]);
+      renderDetail();
+
+      await waitFor(() => {
+        expect(screen.getByText("(Turn #3)")).toBeInTheDocument();
+      });
+      const messages = document.querySelectorAll(".message");
+      expect(messages[0].querySelector(".message-turn")).not.toBeInTheDocument();
+    });
   });
 
   it("displays truncated session id in heading", () => {

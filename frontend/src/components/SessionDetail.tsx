@@ -27,6 +27,7 @@ interface Message {
   lineIndex: number;
   uuid?: string | null;
   parentUuid?: string | null;
+  turn?: number | null;
   parts: MessagePart[];
 }
 
@@ -401,6 +402,9 @@ export function SessionDetail({ session, projectId, projectDisplayName, onBack, 
                     <span className="collapse-arrow">{collapsed.has(m.lineIndex) ? "▶" : "▼"}</span>
                   </button>
                   <span className="message-role">{m.role}</span>
+                  {m.role === "assistant" && m.turn != null && (
+                    <span className="message-turn">(Turn #{m.turn})</span>
+                  )}
                 </div>
                 <div className="message-actions">
                   {m.parts.some((p) => p.type === "text" || p.detail) && (

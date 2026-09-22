@@ -14,6 +14,7 @@ from flask_cors import CORS
 import frontmatter
 
 from cache_stats import build_cache_stats
+from cache_stats import build_turn_numbers
 from pricing import load_pricing
 from pricing import save_model_pricing
 from tool_formatters import format_tool_input
@@ -312,8 +313,10 @@ def list_sessions(project_id: str):
 @app.route("/api/projects/<project_id>/sessions/<session_id>")
 def get_session(project_id: str, session_id: str):
     jsonl_file = _resolve_session_file(project_id, session_id)
+    turn_numbers = build_turn_numbers(jsonl_file)
 
     messages = []
+    last_turn = None
     with open(jsonl_file) as fh:
         for line_index, line in enumerate(fh):
             try:
@@ -327,6 +330,14 @@ def get_session(project_id: str, session_id: str):
             content = message.get("content", "")
             uuid_val = msg.get("uuid")
             parent_uuid_val = msg.get("parentUuid")
+            turn = None
+            if msg_type == "assistant":
+                key = msg.get("requestId") or message.get("id")
+                turn = turn_numbers.get(key) if key is not None else None
+                # Sidechain/synthetic records have no turn of their own (see
+                # `build_turn_numbers`); they share the turn of the request before them.
+                turn = turn if turn is not None else last_turn
+                last_turn = turn
             if isinstance(content, str):
                 if content.lstrip().startswith("<"):
                     continue
@@ -337,6 +348,7 @@ def get_session(project_id: str, session_id: str):
                             "lineIndex": line_index,
                             "uuid": uuid_val,
                             "parentUuid": parent_uuid_val,
+                            "turn": turn,
                             "parts": [{"type": "text", "text": content}],
                         }
                     )
@@ -387,6 +399,7 @@ def get_session(project_id: str, session_id: str):
                             "lineIndex": line_index,
                             "uuid": uuid_val,
                             "parentUuid": parent_uuid_val,
+                            "turn": turn,
                             "parts": parts,
                         }
                     )
